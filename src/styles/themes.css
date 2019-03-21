@@ -1,0 +1,103 @@
+/* Day */
+
+body._day {
+	background: #fff;
+}
+
+body._day .select__item:hover {
+	background: #ced4d7;
+}
+
+body._day .select__item._active {
+	border-color: #ced4d7;
+}
+
+body._day .zoombar__selection {
+	border-color: #ced4d7;
+}
+
+body._day .zoombar__grip {
+	background: #ced4d7;
+}
+
+body._day .zoombar__overlay {
+	background: #ced4d7;
+}
+
+body._day .checkbox {
+	border-color: #ced4d7;
+}
+
+body._day .checkbox__text {
+	color: #464b4e;
+}
+
+body._day .cursor__marker {
+	background: #fff;
+}
+
+body._day .cursor__ruler {
+	border-color: #eef1f4;
+}
+
+body._day .label {
+	color: #eaeaea;
+	background: #fff;
+	border-color: #ced4d7;
+}
+
+body._day .label__title {
+	color: #464b4e;
+}
+
+/* Night */
+
+body._night {
+	background: #252f3f;
+}
+
+body._night .select__item:hover {
+	background: #4e5e6f;
+}
+
+body._night .select__item._active {
+	border-color: #4e5e6f;
+}
+
+body._night .zoombar__selection {
+	border-color: #4e5e6f;
+}
+
+body._night .zoombar__grip {
+	background: #4e5e6f;
+}
+
+body._night .zoombar__overlay {
+	background: #4e5e6f;
+}
+
+body._night .checkbox {
+	border-color: #4e5e6f;
+}
+
+body._night .checkbox__text {
+	color: #d6dbde;
+}
+
+body._night .cursor__marker {
+	background: #252f3f;
+}
+
+body._night .cursor__ruler {
+	border-color: #2f3a4b;
+}
+
+body._night .label {
+	color: #2a2a2a;
+	background: #252f3f;
+	border-color: #4e5e6f;
+}
+
+body._night .label__title {
+	color: #d6dbde;
+}
