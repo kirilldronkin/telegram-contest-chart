@@ -12,7 +12,7 @@ body._day .select__item._active {
 	border-color: #ced4d7;
 }
 
-body._day .zoombar__selection {
+body._day .zoombar__pan {
 	border-color: #ced4d7;
 }
 
@@ -64,7 +64,7 @@ body._night .select__item._active {
 	border-color: #4e5e6f;
 }
 
-body._night .zoombar__selection {
+body._night .zoombar__pan {
 	border-color: #4e5e6f;
 }
 
@@ -95,7 +95,7 @@ body._night .cursor__ruler {
 body._night .label {
 	color: #2a2a2a;
 	background: #252f3f;
-	border-color: #4e5e6f;
+	border-color: #252f3f;
 }
 
 body._night .label__title {

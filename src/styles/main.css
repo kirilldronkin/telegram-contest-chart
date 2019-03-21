@@ -63,7 +63,7 @@ body {
 	left: 0;
 }
 
-.zoombar__selection {
+.zoombar__pan {
 	display: inline-block;
 	height: 100%;
 	border-top: 5px solid;
@@ -72,17 +72,17 @@ body {
 	box-sizing: border-box;
 }
 
-.zoombar__selection._draggable {
+.zoombar__pan._draggable {
 	cursor: grab;
 }
 
-.zoombar__selection._draggable._dragging {
+.zoombar__pan._draggable._dragging {
 	cursor: grabbing;
 }
 
 .zoombar__grip {
 	display: inline-block;
-	width: 1%;
+	width: 10px;
 	height: 100%;
 	opacity: 0.8;
 	cursor: col-resize;

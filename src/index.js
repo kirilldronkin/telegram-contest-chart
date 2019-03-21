@@ -1,6 +1,6 @@
 import Point from './point.js';
 import Graph from './graph.js';
-import Chart, {TickType} from './chart.js';
+import Chart, {TicksType, TicksScale} from './chart.js';
 import Cursor from './cursor.js';
 import Zoombar from './ui/zoombar.js';
 import Checkbox from './ui/checkbox.js';
@@ -13,8 +13,9 @@ const Theme = {
 };
 
 const zoomChart = new Chart(document.querySelector('#zoom-chart-canvas'), {
-	xTicksType: TickType.DATE,
-	yTicksType: TickType.COMPACT,
+	xTicksType: TicksType.DATE,
+	yTicksType: TicksType.COMPACT,
+	yTicksScale: TicksScale.NICE,
 	topPadding: 30,
 	bottomPadding: 40,
 	graphLineThickness: 3,
@@ -22,10 +23,12 @@ const zoomChart = new Chart(document.querySelector('#zoom-chart-canvas'), {
 });
 
 const overviewChart = new Chart(document.querySelector('#overview-chart-canvas'), {
-	xTicksType: TickType.NONE,
-	yTicksType: TickType.NONE,
+	xTicksType: TicksType.NONE,
+	yTicksType: TicksType.NONE,
 	topPadding: 10,
 	bottomPadding: 10,
+	leftPadding: 10,
+	rightPadding: 10,
 	graphLineThickness: 2
 });
 
@@ -79,8 +82,8 @@ window.addEventListener('load', () => {
 
 				const canvas = document.createElement('canvas');
 				const chart = new Chart(canvas, {
-					xTicksType: TickType.NONE,
-					yTicksType: TickType.NONE,
+					xTicksType: TicksType.NONE,
+					yTicksType: TicksType.NONE,
 					topPadding: 10,
 					bottomPadding: 10,
 					leftPadding: 10,
@@ -137,10 +140,6 @@ function selectGraphSet(set) {
 	zoomChart.clear();
 	overviewChart.clear();
 
-	while (legendContainer.firstChild) {
-		legendContainer.removeChild(legendContainer.firstChild);
-	}
-
 	set.forEach((graph) => {
 		const checkboxContainer = document.createElement('div');
 		const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
@@ -171,7 +170,14 @@ function selectGraphSet(set) {
 	overviewChart.draw();
 
 	zoomChart.resize();
-	zoombar.setRange(0, zoombarContainer.offsetWidth);
+	zoomChart.draw();
+
+	// 10px - size of the grip, consider it
+	zoombar.setRange(10, zoombarContainer.offsetWidth - 10);
+
+	while (legendContainer.firstChild) {
+		legendContainer.removeChild(legendContainer.firstChild);
+	}
 
 	Array.from(selectContainer.childNodes)
 		.forEach((child, index) => {
@@ -180,7 +186,7 @@ function selectGraphSet(set) {
 			if (index === graphSets.indexOf(set)) {
 				child.classList.add('_active');
 			}
-		})
+		});
 }
 
 function resize() {
@@ -188,6 +194,13 @@ function resize() {
 		chart.resize();
 		chart.draw();
 	});
+
+	const range = zoomChart.getRange();
+
+	zoombar.setRange(
+		overviewChart.getPixelsByX(range.start),
+		overviewChart.getPixelsByX(range.end)
+	)
 }
 
 let drawZoomChart = zoomChart.draw.bind(zoomChart);

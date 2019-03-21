@@ -17,19 +17,18 @@ export default class Zoombar {
 
 	setRange(start, end) {
 		const containerSize = this._container.offsetWidth;
-		const gripsSize = this._leftGrip.offsetWidth + this._rightGrip.offsetWidth;
+		const leftGripSize = this._leftGrip.offsetWidth;
+		const rightGripSize = this._rightGrip.offsetWidth;
 
-		this._renderLeftOverlaySize(start);
-		this._renderRightOverlaySize(containerSize - end - gripsSize);
-		this._renderSelectionSize(end - start - gripsSize);
-
-		this._updateListener();
+		this._renderLeftOverlaySize(start - leftGripSize);
+		this._renderRightOverlaySize(containerSize - end - rightGripSize);
+		this._renderPanSize(end - start);
 	}
 
 	getRange() {
 		return {
-			start: this._leftOverlay.offsetWidth,
-			end: this._container.offsetWidth - this._rightOverlay.offsetWidth
+			start: this._leftOverlay.offsetWidth + this._leftGrip.offsetWidth,
+			end: this._container.offsetWidth - this._rightOverlay.offsetWidth - this._rightGrip.offsetWidth
 		};
 	}
 
@@ -38,13 +37,13 @@ export default class Zoombar {
 
 		this._leftGrip = createDiv('zoombar__grip');
 		this._leftOverlay = createDiv('zoombar__overlay');
-		this._selection = createDiv('zoombar__selection');
+		this._pan = createDiv('zoombar__pan');
 		this._rightGrip = createDiv('zoombar__grip');
 		this._rightOverlay = createDiv('zoombar__overlay');
 
 		this._container.appendChild(this._leftOverlay);
 		this._container.appendChild(this._leftGrip);
-		this._container.appendChild(this._selection);
+		this._container.appendChild(this._pan);
 		this._container.appendChild(this._rightGrip);
 		this._container.appendChild(this._rightOverlay);
 	}
@@ -54,54 +53,55 @@ export default class Zoombar {
 		listenHorizontalDragEvent(this._container, this._rightGrip, this._onRightGripDragged.bind(this));
 		listenHorizontalDragEvent(
 			this._container,
-			this._selection,
-			this._onSelectionDragged.bind(this),
-			this._onSelectionDragStarted.bind(this),
-			this._onSelectionDragEnded.bind(this)
+			this._pan,
+			this._onPanDragged.bind(this),
+			this._onPanDragStarted.bind(this),
+			this._onPanDragEnded.bind(this)
 		);
 
 		this._leftOverlay.addEventListener('click', this._onLeftOverlayClicked.bind(this));
 		this._rightOverlay.addEventListener('click', this._onRightOverlayClicked.bind(this));
 	}
 
-	_renderSelectionSize(size) {
+	_renderPanSize(size) {
 		const gripsSize = this._leftGrip.offsetWidth + this._rightGrip.offsetWidth;
+		const draggable = size < this._container.offsetWidth - gripsSize;
 
-		this._selection.classList.toggle('_draggable', size < this._container.offsetWidth - gripsSize);
-		this._selection.style.width = `${max(size / this._container.offsetWidth * 100, 0)}%`;
+		this._pan.style.width = `${size}px`;
+		this._pan.classList.toggle('_draggable', draggable);
 	}
 
 	_renderLeftOverlaySize(size) {
-		this._leftOverlay.style.width = `${max(size / this._container.offsetWidth * 100, 0)}%`;
+		this._leftOverlay.style.width = `${size}px`;
 	}
 
 	_renderRightOverlaySize(size) {
-		this._rightOverlay.style.width = `${max(size / this._container.offsetWidth * 100, 0)}%`;
+		this._rightOverlay.style.width = `${size}px`;
 	}
 
 	_onLeftGripDragged(positionDiff) {
-		const newSelectionSize = this._selection.offsetWidth - positionDiff;
+		const newPanSize = this._pan.offsetWidth - positionDiff;
 
-		if (newSelectionSize >= 0) {
+		if (newPanSize >= 0) {
 			this._renderLeftOverlaySize(this._leftOverlay.offsetWidth + positionDiff);
-			this._renderSelectionSize(newSelectionSize);
+			this._renderPanSize(newPanSize);
 
 			this._updateListener();
 		}
 	}
 
 	_onRightGripDragged(positionDiff) {
-		const newSelectionSize = this._selection.offsetWidth + positionDiff;
+		const newPanSize = this._pan.offsetWidth + positionDiff;
 
-		if (newSelectionSize >= 0) {
+		if (newPanSize >= 0) {
 			this._renderRightOverlaySize(this._rightOverlay.offsetWidth - positionDiff);
-			this._renderSelectionSize(newSelectionSize);
+			this._renderPanSize(newPanSize);
 
 			this._updateListener();
 		}
 	}
 
-	_onSelectionDragged(positionDiff) {
+	_onPanDragged(positionDiff) {
 		let newLeftOverlaySize = this._leftOverlay.offsetWidth + positionDiff;
 		let newRightOverlaySize = this._rightOverlay.offsetWidth - positionDiff;
 
@@ -119,23 +119,23 @@ export default class Zoombar {
 		this._updateListener();
 	}
 
-	_onSelectionDragStarted() {
-		this._selection.classList.add('_dragging');
+	_onPanDragStarted() {
+		this._pan.classList.add('_dragging');
 	}
 
-	_onSelectionDragEnded() {
-		this._selection.classList.remove('_dragging');
+	_onPanDragEnded() {
+		this._pan.classList.remove('_dragging');
 	}
 
 	_onLeftOverlayClicked(event) {
 		const leftOverlayBCR = this._leftOverlay.getBoundingClientRect();
 
-		let newSelectionStart = event.clientX - leftOverlayBCR.left - this._leftGrip.offsetWidth;
-		newSelectionStart -= this._selection.offsetWidth / 2;
-		newSelectionStart = max(newSelectionStart, 0);
+		let newPanStart = event.clientX - leftOverlayBCR.left - this._leftGrip.offsetWidth;
+		newPanStart -= this._pan.offsetWidth / 2;
+		newPanStart = max(newPanStart, 0);
 
-		this._renderLeftOverlaySize(newSelectionStart);
-		this._renderRightOverlaySize(this._rightOverlay.offsetWidth + leftOverlayBCR.width - newSelectionStart);
+		this._renderLeftOverlaySize(newPanStart);
+		this._renderRightOverlaySize(this._rightOverlay.offsetWidth + leftOverlayBCR.width - newPanStart);
 
 		this._updateListener();
 	}
@@ -143,12 +143,12 @@ export default class Zoombar {
 	_onRightOverlayClicked(event) {
 		const rightOverlayBCR = this._rightOverlay.getBoundingClientRect();
 
-		let newSelectionEnd = rightOverlayBCR.right - event.clientX - this._rightGrip.offsetWidth;
-		newSelectionEnd -= this._selection.offsetWidth / 2;
-		newSelectionEnd = max(newSelectionEnd, 0);
+		let newPanEnd = rightOverlayBCR.right - event.clientX - this._rightGrip.offsetWidth;
+		newPanEnd -= this._pan.offsetWidth / 2;
+		newPanEnd = max(newPanEnd, 0);
 
-		this._renderRightOverlaySize(newSelectionEnd);
-		this._renderLeftOverlaySize(this._leftOverlay.offsetWidth + rightOverlayBCR.width - newSelectionEnd);
+		this._renderRightOverlaySize(newPanEnd);
+		this._renderLeftOverlaySize(this._leftOverlay.offsetWidth + rightOverlayBCR.width - newPanEnd);
 
 		this._updateListener();
 	}
