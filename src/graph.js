@@ -1,5 +1,7 @@
 import Point from './point.js';
-import {findMax, findMin} from './utils.js';
+import {findMax, findStart} from './utils.js';
+
+const {floor} = Math;
 
 export default class Graph {
 	constructor(name, color, points) {
@@ -8,10 +10,10 @@ export default class Graph {
 		this.points = points;
 	}
 
-	getMin() {
+	getStart() {
 		return {
-			x: findMin(this.points, (point) => point.x),
-			y: findMin(this.points, (point) => point.y)
+			x: findStart(this.points, (point) => point.x),
+			y: findStart(this.points, (point) => point.y)
 		};
 	}
 
@@ -23,25 +25,34 @@ export default class Graph {
 	}
 
 	getRange(startX, endX) {
-		const rangePoints = this.points.filter((point) => point.x >= startX && point.x <= endX);
+		const startPointIndex = findIndexByX(this.points, startX, (x, index) => {
+			const prev = this.points[index - 1];
 
-		const startPoint = rangePoints[0];
-		const startPointIndex = this.points.indexOf(startPoint);
+			return x >= startX && (!prev || prev.x < startX);
+		});
 
-		const endPoint = rangePoints[rangePoints.length - 1];
-		const endPointIndex = this.points.indexOf(endPoint);
+		const restPoints = this.points.slice(startPointIndex);
+		const endPointIndex = startPointIndex + findIndexByX(restPoints, endX, (x, index) => {
+			const next = restPoints[index + 1];
 
+			return x <= endX && (!next || next.x > endX);
+		});
+
+		const rangePoints = this.points.slice(startPointIndex, endPointIndex + 1);
+
+		const startPoint = this.points[startPointIndex];
 		if (startPoint.x !== startX) {
-			const pointBeforeMin = this.points[startPointIndex - 1];
-			if (pointBeforeMin) {
-				rangePoints.unshift(interpolate(startX, pointBeforeMin, startPoint));
+			const pointBeforeStart = this.points[startPointIndex - 1];
+			if (pointBeforeStart) {
+				rangePoints.unshift(interpolate(startX, pointBeforeStart, startPoint));
 			}
 		}
 
+		const endPoint = this.points[endPointIndex];
 		if (endPoint.x !== endX) {
-			const pointAfterMax = this.points[endPointIndex + 1];
-			if (pointAfterMax) {
-				rangePoints.push(interpolate(endX, endPoint, pointAfterMax));
+			const pointAfterEnd = this.points[endPointIndex + 1];
+			if (pointAfterEnd) {
+				rangePoints.push(interpolate(endX, endPoint, pointAfterEnd));
 			}
 		}
 
@@ -55,4 +66,23 @@ function interpolate(x, point1, point2) {
 	return new Point(x, y, {
 		interpolated: true
 	});
+}
+
+function findIndexByX(points, x, predicate) {
+	let start = 0;
+	let stop = points.length - 1;
+	let middle = floor((start + stop) / 2);
+
+	let isFound;
+	while (!(isFound = predicate(points[middle].x, middle)) && start < stop) {
+		if (x < points[middle].x) {
+			stop = middle - 1;
+		} else {
+			start = middle + 1;
+		}
+
+		middle = floor((start + stop) / 2);
+	}
+
+	return isFound ? middle : null;
 }

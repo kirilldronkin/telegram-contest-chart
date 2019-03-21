@@ -140,6 +140,10 @@ function selectGraphSet(set) {
 	zoomChart.clear();
 	overviewChart.clear();
 
+	while (legendContainer.firstChild) {
+		legendContainer.removeChild(legendContainer.firstChild);
+	}
+
 	set.forEach((graph) => {
 		const checkboxContainer = document.createElement('div');
 		const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
@@ -174,10 +178,6 @@ function selectGraphSet(set) {
 
 	// 10px - size of the grip, consider it
 	zoombar.setRange(10, zoombarContainer.offsetWidth - 10);
-
-	while (legendContainer.firstChild) {
-		legendContainer.removeChild(legendContainer.firstChild);
-	}
 
 	Array.from(selectContainer.childNodes)
 		.forEach((child, index) => {
