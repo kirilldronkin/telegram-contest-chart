@@ -9,6 +9,13 @@ export default class Zoombar {
 
 		this._setupDOM();
 		this._listenDOMEvents();
+
+		// Cache sizes
+		this._leftOverlaySize = NaN;
+		this._leftGripSize = this._leftGrip.offsetWidth; // Fixed
+		this._panSize = NaN;
+		this._rightGripSize = this._rightGrip.offsetWidth; // Fixed
+		this._rightOverlaySize = NaN;
 	}
 
 	setUpdateListener(listener) {
@@ -17,19 +24,17 @@ export default class Zoombar {
 
 	setRange(start, end) {
 		const containerSize = this._container.offsetWidth;
-		const leftGripSize = this._leftGrip.offsetWidth;
-		const rightGripSize = this._rightGrip.offsetWidth;
 
-		this._renderLeftOverlaySize(start - leftGripSize);
-		this._renderRightOverlaySize(containerSize - end - rightGripSize);
+		this._renderLeftOverlaySize(start - this._leftGripSize);
+		this._renderRightOverlaySize(containerSize - end - this._rightGripSize);
 		this._renderPanSize(end - start);
 	}
 
 	getRange() {
-		return {
-			start: this._leftOverlay.offsetWidth + this._leftGrip.offsetWidth,
-			end: this._container.offsetWidth - this._rightOverlay.offsetWidth - this._rightGrip.offsetWidth
-		};
+		const start = this._leftOverlaySize + this._leftGripSize;
+		const end = start + this._panSize;
+
+		return {start, end};
 	}
 
 	_setupDOM() {
@@ -64,26 +69,29 @@ export default class Zoombar {
 	}
 
 	_renderPanSize(size) {
-		const gripsSize = this._leftGrip.offsetWidth + this._rightGrip.offsetWidth;
-		const draggable = size < this._container.offsetWidth - gripsSize;
+		const containerSize = this._container.offsetWidth;
+		const gripsSize = this._leftGripSize + this._rightGripSize;
+		const draggable = size < containerSize - gripsSize;
 
+		this._panSize = size;
 		this._pan.style.width = `${size}px`;
 		this._pan.classList.toggle('_draggable', draggable);
 	}
 
 	_renderLeftOverlaySize(size) {
+		this._leftOverlaySize = size;
 		this._leftOverlay.style.width = `${size}px`;
 	}
 
 	_renderRightOverlaySize(size) {
+		this._rightOverlaySize = size;
 		this._rightOverlay.style.width = `${size}px`;
 	}
 
 	_onLeftGripDragged(positionDiff) {
-		const newPanSize = this._pan.offsetWidth - positionDiff;
-
+		const newPanSize = this._panSize - positionDiff;
 		if (newPanSize >= 0) {
-			this._renderLeftOverlaySize(this._leftOverlay.offsetWidth + positionDiff);
+			this._renderLeftOverlaySize(this._leftOverlaySize + positionDiff);
 			this._renderPanSize(newPanSize);
 
 			this._updateListener();
@@ -91,10 +99,9 @@ export default class Zoombar {
 	}
 
 	_onRightGripDragged(positionDiff) {
-		const newPanSize = this._pan.offsetWidth + positionDiff;
-
+		const newPanSize = this._panSize + positionDiff;
 		if (newPanSize >= 0) {
-			this._renderRightOverlaySize(this._rightOverlay.offsetWidth - positionDiff);
+			this._renderRightOverlaySize(this._rightOverlaySize - positionDiff);
 			this._renderPanSize(newPanSize);
 
 			this._updateListener();
@@ -102,8 +109,8 @@ export default class Zoombar {
 	}
 
 	_onPanDragged(positionDiff) {
-		let newLeftOverlaySize = this._leftOverlay.offsetWidth + positionDiff;
-		let newRightOverlaySize = this._rightOverlay.offsetWidth - positionDiff;
+		let newLeftOverlaySize = this._leftOverlaySize + positionDiff;
+		let newRightOverlaySize = this._rightOverlaySize - positionDiff;
 
 		if (newLeftOverlaySize < 0) {
 			newRightOverlaySize += newLeftOverlaySize;
@@ -130,12 +137,12 @@ export default class Zoombar {
 	_onLeftOverlayClicked(event) {
 		const leftOverlayBCR = this._leftOverlay.getBoundingClientRect();
 
-		let newPanStart = event.clientX - leftOverlayBCR.left - this._leftGrip.offsetWidth;
-		newPanStart -= this._pan.offsetWidth / 2;
+		let newPanStart = event.clientX - leftOverlayBCR.left - this._leftGripSize;
+		newPanStart -= this._panSize / 2;
 		newPanStart = max(newPanStart, 0);
 
 		this._renderLeftOverlaySize(newPanStart);
-		this._renderRightOverlaySize(this._rightOverlay.offsetWidth + leftOverlayBCR.width - newPanStart);
+		this._renderRightOverlaySize(this._rightOverlaySize + leftOverlayBCR.width - newPanStart);
 
 		this._updateListener();
 	}
@@ -143,12 +150,12 @@ export default class Zoombar {
 	_onRightOverlayClicked(event) {
 		const rightOverlayBCR = this._rightOverlay.getBoundingClientRect();
 
-		let newPanEnd = rightOverlayBCR.right - event.clientX - this._rightGrip.offsetWidth;
-		newPanEnd -= this._pan.offsetWidth / 2;
+		let newPanEnd = rightOverlayBCR.right - event.clientX - this._rightGripSize;
+		newPanEnd -= this._panSize / 2;
 		newPanEnd = max(newPanEnd, 0);
 
 		this._renderRightOverlaySize(newPanEnd);
-		this._renderLeftOverlaySize(this._leftOverlay.offsetWidth + rightOverlayBCR.width - newPanEnd);
+		this._renderLeftOverlaySize(this._leftOverlaySize + rightOverlayBCR.width - newPanEnd);
 
 		this._updateListener();
 	}
