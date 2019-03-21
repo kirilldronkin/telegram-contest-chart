@@ -1,5 +1,5 @@
 import Point from './point.js';
-import {findMax, findStart} from './utils.js';
+import {findMax, findMin} from './utils.js';
 
 const {floor} = Math;
 
@@ -10,10 +10,10 @@ export default class Graph {
 		this.points = points;
 	}
 
-	getStart() {
+	getMin() {
 		return {
-			x: findStart(this.points, (point) => point.x),
-			y: findStart(this.points, (point) => point.y)
+			x: findMin(this.points, (point) => point.x),
+			y: findMin(this.points, (point) => point.y)
 		};
 	}
 
