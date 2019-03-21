@@ -5,7 +5,7 @@ import Cursor from './cursor.js';
 import Zoombar from './ui/zoombar.js';
 import Checkbox from './ui/checkbox.js';
 
-const THEME_STORAGE_KEY = 'telegram-content__color-scheme';
+const THEME_STORAGE_KEY = 'telegram-contest-chart_theme';
 
 const Theme = {
 	DAY: 'day',
@@ -65,9 +65,13 @@ window.addEventListener('load', () => {
 		.finally(() => {
 			cursor.observe(zoomChart);
 
+			zoombar.setUpdateListener(zoom);
+
 			themeSwitchButton.addEventListener('click', () => {
 				selectTheme(currentTheme === Theme.DAY ? Theme.NIGHT : Theme.DAY);
 			});
+
+			window.addEventListener('resize', resize);
 
 			graphSets.forEach((set) => {
 				const container = document.createElement('div');
@@ -99,9 +103,6 @@ window.addEventListener('load', () => {
 				chart.resize();
 				chart.draw();
 			});
-
-			window.addEventListener('resize', resize);
-			zoombar.setUpdateListener(zoom);
 
 			selectTheme(currentTheme);
 			selectGraphSet(graphSets[0]);
@@ -135,7 +136,10 @@ function selectTheme(theme) {
 function selectGraphSet(set) {
 	zoomChart.clear();
 	overviewChart.clear();
-	legendContainer.innerHTML = '';
+
+	while (legendContainer.firstChild) {
+		legendContainer.removeChild(legendContainer.firstChild);
+	}
 
 	set.forEach((graph) => {
 		const checkboxContainer = document.createElement('div');

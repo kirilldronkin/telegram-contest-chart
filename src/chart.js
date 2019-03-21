@@ -147,9 +147,7 @@ export default class Chart {
 		};
 
 		const onTransitionUpdate = () => {
-			this._prepareCanvas();
-			this._drawTicks();
-			this._drawGraphs();
+			this._draw();
 		};
 
 		const transition = new Transition(
@@ -223,6 +221,10 @@ export default class Chart {
 			}
 		}
 
+		const transitionIntervals = [{
+			from: this._graphsAlphas.get(graph), to: 0
+		}];
+
 		const onTransitionProgress = (alpha) => {
 			this._graphsAlphas.set(graph, alpha);
 		};
@@ -237,10 +239,6 @@ export default class Chart {
 		const onTransitionUpdate = () => {
 			this._draw();
 		};
-
-		const transitionIntervals = [{
-			from: this._graphsAlphas.get(graph), to: 0
-		}];
 
 		const transition = new Transition(
 			transitionIntervals,
@@ -405,8 +403,6 @@ export default class Chart {
 		this._scaleXAxis();
 		this._scaleYAxis();
 
-		this._draw();
-
 		if (this._yTransition && this._yTransition.isPending()) {
 			this._yTransition.start();
 		}
@@ -417,6 +413,8 @@ export default class Chart {
 					transition.start();
 				}
 			});
+
+		this._draw();
 	}
 
 	_prepareCanvas() {
@@ -452,7 +450,7 @@ export default class Chart {
 				const xPixels = this._leftPadding + this._pixelsPerX * point.x;
 				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * point.y;
 
-				// Decimate points
+				// Decimate redundant points
 				if (!lastDrawnXPixels || round(lastDrawnXPixels) !== round(xPixels)) {
 					if (index === 0) {
 						this._context.moveTo(xPixels, yPixels);
@@ -530,6 +528,7 @@ export default class Chart {
 
 		this._minXTick = minX;
 		this._maxXTick = maxX;
+		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxXTick - this._minXTick);
 
 		const offsetX = this._maxXTick === this._maxX ? 0 : (this._minX - this._minXTick) % spacing;
 
@@ -537,8 +536,6 @@ export default class Chart {
 		while (this._xTicks[this._xTicks.length - 1] < (this._maxXTick + offsetX)) {
 			this._xTicks.push(this._minXTick + offsetX + (this._xTicks.length * spacing));
 		}
-
-		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxXTick - this._minXTick);
 	}
 
 	_scaleYAxis() {
@@ -558,13 +555,12 @@ export default class Chart {
 		if (isNaN(this._minYTick) || isNaN(this._maxYTick)) {
 			this._minYTick = newMinYTick;
 			this._maxYTick = newMaxYTick;
+			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxYTick - this._minYTick);
 
 			this._yTicks = [this._minYTick];
 			while (this._yTicks[this._yTicks.length - 1] < this._maxYTick) {
 				this._yTicks.push(this._minYTick + (this._yTicks.length * spacing));
 			}
-
-			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxYTick - this._minYTick);
 
 			return;
 		}
@@ -583,7 +579,7 @@ export default class Chart {
 			newYTicks.push(newMinYTick + (newYTicks.length * spacing));
 		}
 
-		this._yTicks = Array.from(new Set(oldYTicks.concat(newYTicks).sort((a, b) => a - b)));
+		this._yTicks = Array.from(new Set([...oldYTicks, ...newYTicks].sort((a, b) => a - b)));
 		this._yTicks.forEach((tick) => {
 			if (newYTicks.includes(tick)) {
 				this._yTicksAlphas.set(tick, 0);
@@ -605,7 +601,6 @@ export default class Chart {
 		const onTransitionProgress = (minYTick, maxYTick, oldTickAlpha, newTickAlpha) => {
 			this._minYTick = minYTick;
 			this._maxYTick = maxYTick;
-
 			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (maxYTick - minYTick);
 
 			this._yTicks.forEach((tick) => {

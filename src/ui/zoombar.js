@@ -36,9 +36,9 @@ export default class Zoombar {
 	_setupDOM() {
 		this._container.classList.add('zoombar');
 
-		this._selection = createDiv('zoombar__selection');
 		this._leftGrip = createDiv('zoombar__grip');
 		this._leftOverlay = createDiv('zoombar__overlay');
+		this._selection = createDiv('zoombar__selection');
 		this._rightGrip = createDiv('zoombar__grip');
 		this._rightOverlay = createDiv('zoombar__overlay');
 
@@ -154,22 +154,22 @@ export default class Zoombar {
 	}
 }
 
-function listenHorizontalDragEvent(container, element, onMoved, onStarted, onEnded) {
+function getEventXCoordinate(event) {
+	return event.targetTouches ? event.targetTouches[0].clientX : event.clientX;
+}
+
+function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
 	const listener =  (event) => {
-		const eventX = event.targetTouches ? event.targetTouches[0].clientX : event.clientX;
+		const eventX = getEventXCoordinate(event);
 
 		const containerBCR = container.getBoundingClientRect();
 		const elementBCR = element.getBoundingClientRect();
-
-		if (onStarted) {
-			onStarted();
-		}
 
 		const mouseOffset = eventX - elementBCR.left;
 
 		let lastPosition = eventX - containerBCR.left;
 		const onMove = (event) => {
-			const eventX = event.targetTouches ? event.targetTouches[0].clientX : event.clientX;
+			const eventX = getEventXCoordinate(event);
 			const newPosition = eventX - containerBCR.left;
 
 			if (newPosition > mouseOffset && newPosition + elementBCR.width - mouseOffset < containerBCR.width) {
@@ -189,9 +189,7 @@ function listenHorizontalDragEvent(container, element, onMoved, onStarted, onEnd
 			container.removeEventListener('mouseleave', onEnd);
 			container.removeEventListener('touchend', onEnd);
 
-			if (onEnded) {
-				onEnded();
-			}
+			onEnded();
 		};
 
 		container.addEventListener('mousemove', onMove);
@@ -199,6 +197,8 @@ function listenHorizontalDragEvent(container, element, onMoved, onStarted, onEnd
 		container.addEventListener('mouseup', onEnd);
 		container.addEventListener('mouseleave', onEnd);
 		container.addEventListener('touchend', onEnd);
+
+		onStarted();
 	};
 
 	element.addEventListener('mousedown', listener);
