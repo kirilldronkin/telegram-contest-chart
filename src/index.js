@@ -203,7 +203,6 @@ function resize() {
 	)
 }
 
-let drawZoomChart = zoomChart.draw.bind(zoomChart);
 function zoom() {
 	const range = zoombar.getRange();
 
@@ -212,5 +211,5 @@ function zoom() {
 		overviewChart.getXByPixels(range.end)
 	);
 
-	requestAnimationFrame(drawZoomChart);
+	zoomChart.draw();
 }

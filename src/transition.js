@@ -29,8 +29,9 @@ export default class Transition {
 		this._onComplete = onComplete;
 		this._onUpdate = onUpdate;
 
-		this._state = State.PENDING;
 		this._rafId = NaN;
+		this._values = [];
+		this._state = State.PENDING;
 	}
 
 	isPending() {
@@ -43,6 +44,10 @@ export default class Transition {
 
 	getIntervals() {
 		return this._intervals;
+	}
+
+	getValues() {
+		return this._values;
 	}
 
 	start() {
@@ -59,17 +64,18 @@ export default class Transition {
 
 			const passed = min(time - start, this._duration);
 
-			this._onProgress(...this._intervals.map((interval) => {
+			this._values = this._intervals.map((interval) => {
 				const range = interval.to - interval.from;
-
-				const current = interval.from + ((range) * (this._timingFunction(passed / this._duration)));
+				const value = interval.from + ((range) * (this._timingFunction(passed / this._duration)));
 
 				if (range > 0) {
-					return min(current, interval.to);
+					return min(value, interval.to);
 				} else {
-					return max(current, interval.to);
+					return max(value, interval.to);
 				}
-			}));
+			});
+
+			this._onProgress(...this._values);
 
 			if (passed < this._duration) {
 				this._rafId = requestAnimationFrame(step);
@@ -82,6 +88,7 @@ export default class Transition {
 		};
 
 		this._rafId = requestAnimationFrame(step);
+		this._values = this._intervals.map((interval) => interval.from);
 		this._state = State.ACTIVE;
 	}
 

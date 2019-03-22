@@ -123,7 +123,7 @@ function formatDate(date, spacing) {
 	} else if (spacing / msInHour >= 1) {
 		return `${getShortMonthName(date.getMonth())} ${date.getDate()} ${to12Hours(date)}`;
 	} else if (spacing / msInMinute >= 1) {
-		return `${to12Hours(date.getHours(), {withMinutes: true})}}`
+		return `${to12Hours(date, {withMinutes: true})}`
 	} else if (spacing / msInSecond >= 1) {
 		return `${date.getMinutes()}:${String(date.getSeconds()).padStart(2, '0')}`;
 	}

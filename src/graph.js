@@ -25,6 +25,10 @@ export default class Graph {
 	}
 
 	getRange(startX, endX) {
+		if (!this.points.length || startX === endX) {
+			return [];
+		}
+
 		const startPointIndex = findIndexByX(this.points, startX, (x, index) => {
 			const prev = this.points[index - 1];
 

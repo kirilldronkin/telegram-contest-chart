@@ -471,9 +471,9 @@ export default class Chart {
 					} else {
 						this._context.lineTo(xPixels, yPixels);
 					}
-				}
 
-				lastDrawnXPixels = xPixels;
+					lastDrawnXPixels = xPixels;
+				}
 			});
 
 			this._context.strokeStyle = alpha === 1 ? graph.color : hexToRGB(graph.color, alpha);
@@ -516,7 +516,6 @@ export default class Chart {
 			this._yTicks.forEach((tick) => {
 				const lineYPixels = this._height - this._bottomPadding - this._pixelsPerY * tick;
 				const textYPixels = lineYPixels - TICK_TEXT_BOTTOM_MARGIN;
-
 				const alpha = this._yTicksAlphas.has(tick) ? this._yTicksAlphas.get(tick) : 1;
 
 				this._context.fillStyle = alpha === 1 ? this._tickTextColor : hexToRGB(this._tickTextColor, alpha);
@@ -541,6 +540,7 @@ export default class Chart {
 
 		this._minXTick = minX;
 		this._maxXTick = maxX;
+
 		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxXTick - this._minXTick);
 
 		const offsetX = this._maxXTick === this._maxX ? 0 : (this._minX - this._minXTick) % spacing;
@@ -573,6 +573,7 @@ export default class Chart {
 		if (isNaN(this._minYTick) || isNaN(this._maxYTick)) {
 			this._minYTick = newMinYTick;
 			this._maxYTick = newMaxYTick;
+
 			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxYTick - this._minYTick);
 
 			this._yTicks = [this._minYTick];
@@ -583,8 +584,11 @@ export default class Chart {
 			return;
 		}
 
-		const oldMinYTick = this._yScaleTransition ? this._yScaleTransition.getIntervals()[0].to : this._minYTick;
-		const oldMaxYTick = this._yScaleTransition ? this._yScaleTransition.getIntervals()[1].to : this._maxYTick;
+		const currentTransitionIntervals = this._yScaleTransition && this._yScaleTransition.getIntervals();
+		const currentTransitionValues = this._yScaleTransition && this._yScaleTransition.getValues();
+
+		const oldMinYTick = currentTransitionIntervals ? currentTransitionIntervals[0].to : this._minYTick;
+		const oldMaxYTick = currentTransitionIntervals ? currentTransitionIntervals[1].to : this._maxYTick;
 
 		if (newMinYTick === oldMinYTick && newMaxYTick === oldMaxYTick) {
 			return;
@@ -599,6 +603,10 @@ export default class Chart {
 
 		this._yTicks = Array.from(new Set([...oldYTicks, ...newYTicks].sort((a, b) => a - b)));
 		this._yTicks.forEach((tick) => {
+			if (this._yTicksAlphas.has(tick)) {
+				return;
+			}
+
 			if (newYTicks.includes(tick)) {
 				this._yTicksAlphas.set(tick, 0);
 			}
@@ -608,29 +616,27 @@ export default class Chart {
 			}
 		});
 
-		const transitionIntervals = [
-			{from: oldMinYTick, to: newMinYTick},
-			{from: oldMaxYTick, to: newMaxYTick},
+		const initialYTicksAlphas = new Map(this._yTicksAlphas);
 
-			{from: 1, to: 0},
+		const transitionIntervals = [
+			{from: currentTransitionValues ? currentTransitionValues[0] : oldMinYTick, to: newMinYTick},
+			{from: currentTransitionValues ? currentTransitionValues[1] : oldMaxYTick, to: newMaxYTick},
 			{from: 0, to: 1}
 		];
 
-		const onTransitionProgress = (minYTick, maxYTick, oldTickAlpha, newTickAlpha) => {
+		const onTransitionProgress = (minYTick, maxYTick, alphaDiff) => {
 			this._minYTick = minYTick;
 			this._maxYTick = maxYTick;
+
 			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (maxYTick - minYTick);
 
 			this._yTicks.forEach((tick) => {
-				const isOldTick = oldYTicks.includes(tick);
-				const isNewTick = newYTicks.includes(tick);
+				const initialAlpha = initialYTicksAlphas.get(tick);
 
-				if (isNewTick && !isOldTick) {
-					this._yTicksAlphas.set(tick, newTickAlpha);
-				}
-
-				if (isOldTick && !isNewTick) {
-					this._yTicksAlphas.set(tick, oldTickAlpha);
+				if (newYTicks.includes(tick)) {
+					this._yTicksAlphas.set(tick, initialAlpha + alphaDiff);
+				} else if (oldYTicks.includes(tick)) {
+					this._yTicksAlphas.set(tick, initialAlpha - alphaDiff);
 				}
 			});
 		};
