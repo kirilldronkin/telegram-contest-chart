@@ -1,40 +1,87 @@
 import {noop, createDiv} from '../utils.js';
 
 export default class Checkbox {
-	constructor(container, name, color, checked = true) {
+	/**
+	 * @param {HTMLElement} container
+	 * @param {string} text
+	 * @param {string} color
+	 * @param {boolean=} checked
+	 */
+	constructor(container, text, color, checked = true) {
+		/**
+		 * @type {HTMLElement}
+		 * @private
+		 */
 		this._container = container;
-		this._name = name;
+
+		/**
+		 * @type {string}
+		 * @private
+		 */
+		this._text = text;
+
+		/**
+		 * @type {string}
+		 * @private
+		 */
 		this._color = color;
+
+		/**
+		 * @type {boolean}
+		 * @private
+		 */
 		this._checked = checked;
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
 		this._updateListener = noop;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._iconElement;
 
 		this._setupDOM();
 		this._listenDOMEvents();
-
 		this._renderCheckedState();
 	}
 
+	/**
+	 * @param {function()} listener
+	 */
 	setUpdateListener(listener) {
 		this._updateListener = listener;
 	}
 
+	/**
+	 * @return {boolean}
+	 */
 	isChecked() {
 		return this._checked;
 	}
 
+	/**
+	 * @private
+	 */
 	_setupDOM() {
 		this._container.classList.add('checkbox');
 
-		this._icon = createDiv('checkbox__icon');
-		this._icon.style.borderColor = this._color;
-		this._icon.appendChild(createDiv('checkbox__mark'));
+		this._iconElement = createDiv('checkbox__icon');
+		this._iconElement.style.borderColor = this._color;
+		this._iconElement.appendChild(createDiv('checkbox__mark'));
 
-		this._container.appendChild(this._icon);
-		this._container.appendChild(createDiv('checkbox__text', this._name));
+		this._container.appendChild(this._iconElement);
+		this._container.appendChild(createDiv('checkbox__text', this._text));
 	}
 
+	/**
+	 * @private
+	 */
 	_listenDOMEvents() {
-		this._icon.addEventListener('click', () => {
+		this._iconElement.addEventListener('click', () => {
 			this._checked = !this._checked;
 			this._renderCheckedState();
 
@@ -42,6 +89,9 @@ export default class Checkbox {
 		});
 	}
 
+	/**
+	 * @private
+	 */
 	_renderCheckedState() {
 		this._container.classList.toggle('_checked', this._checked);
 		this._container.classList.toggle('_unchecked', !this._checked);

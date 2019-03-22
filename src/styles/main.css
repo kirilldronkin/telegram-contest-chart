@@ -151,24 +151,6 @@ body {
 	animation: checkbox-mark-uncheck .3s ease-in-out forwards;
 }
 
-@keyframes checkbox-mark-check {
-	0% {
-		height: 0;
-		width: 0;
-		opacity: 1;
-	}
-	50% {
-		height: 0;
-		width: 5px;
-		opacity: 1;
-	}
-	100% {
-		height: 12px;
-		width: 5px;
-		opacity: 1;
-	}
-}
-
 .checkbox__text {
 	display: inline-block;
 	vertical-align: top;
@@ -234,6 +216,24 @@ body {
 .label__item-title {
 	margin-top: 2px;
 	font-size: 12px;
+}
+
+@keyframes checkbox-mark-check {
+	0% {
+		height: 0;
+		width: 0;
+		opacity: 1;
+	}
+	50% {
+		height: 0;
+		width: 5px;
+		opacity: 1;
+	}
+	100% {
+		height: 12px;
+		width: 5px;
+		opacity: 1;
+	}
 }
 
 @keyframes checkbox-mark-uncheck {

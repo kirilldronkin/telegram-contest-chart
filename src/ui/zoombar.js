@@ -2,26 +2,103 @@ import {noop, createDiv} from '../utils.js';
 
 const {max, round} = Math;
 
+/**
+ * @const {number}
+ */
+const CLICKS_INACTIVITY_TIME_AFTER_DRAG = 100;
+
 export default class Zoombar {
+	/**
+	 * @param {HTMLElement} container
+	 */
 	constructor(container) {
+		/**
+		 * @type {HTMLElement}
+		 * @private
+		 */
 		this._container = container;
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
 		this._updateListener = noop;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._leftOverlay;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._leftOverlaySize = NaN;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._leftGrip;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._leftGripSize = NaN;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._pan;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._panSize = NaN;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._rightGrip;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._rightGripSize = NaN;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._rightOverlay;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._rightOverlaySize = NaN;
 
 		this._setupDOM();
 		this._listenDOMEvents();
-
-		// Cache sizes
-		this._leftOverlaySize = NaN;
-		this._leftGripSize = this._leftGrip.offsetWidth; // Fixed
-		this._panSize = NaN;
-		this._rightGripSize = this._rightGrip.offsetWidth; // Fixed
-		this._rightOverlaySize = NaN;
 	}
 
+	/**
+	 * @param {function()} listener
+	 */
 	setUpdateListener(listener) {
 		this._updateListener = listener;
 	}
 
+	/**
+	 * @param {number} start
+	 * @param {number} end
+	 */
 	setRange(start, end) {
 		const containerSize = this._container.offsetWidth;
 
@@ -30,6 +107,9 @@ export default class Zoombar {
 		this._renderPanSize(end - start);
 	}
 
+	/**
+	 * @return {{start: number, end: number}}
+	 */
 	getRange() {
 		const start = this._leftOverlaySize + this._leftGripSize;
 		const end = start + this._panSize;
@@ -37,6 +117,9 @@ export default class Zoombar {
 		return {start, end};
 	}
 
+	/**
+	 * @private
+	 */
 	_setupDOM() {
 		this._container.classList.add('zoombar');
 
@@ -51,8 +134,15 @@ export default class Zoombar {
 		this._container.appendChild(this._pan);
 		this._container.appendChild(this._rightGrip);
 		this._container.appendChild(this._rightOverlay);
+
+		// Fixed sizes
+		this._leftGripSize = this._leftGrip.offsetWidth;
+		this._rightGripSize = this._rightGrip.offsetWidth;
 	}
 
+	/**
+	 * @private
+	 */
 	_listenDOMEvents() {
 		listenHorizontalDragEvent(this._container, this._leftGrip, this._onLeftGripDragged.bind(this));
 		listenHorizontalDragEvent(this._container, this._rightGrip, this._onRightGripDragged.bind(this));
@@ -68,6 +158,10 @@ export default class Zoombar {
 		this._rightOverlay.addEventListener('click', this._onRightOverlayClicked.bind(this));
 	}
 
+	/**
+	 * @param {number} size
+	 * @private
+	 */
 	_renderPanSize(size) {
 		const containerSize = this._container.offsetWidth;
 		const gripsSize = this._leftGripSize + this._rightGripSize;
@@ -78,16 +172,28 @@ export default class Zoombar {
 		this._pan.classList.toggle('_draggable', draggable);
 	}
 
+	/**
+	 * @param {number} size
+	 * @private
+	 */
 	_renderLeftOverlaySize(size) {
 		this._leftOverlaySize = size;
 		this._leftOverlay.style.width = `${size}px`;
 	}
 
+	/**
+	 * @param {number} size
+	 * @private
+	 */
 	_renderRightOverlaySize(size) {
 		this._rightOverlaySize = size;
 		this._rightOverlay.style.width = `${size}px`;
 	}
 
+	/**
+	 * @param {number} positionDiff
+	 * @private
+	 */
 	_onLeftGripDragged(positionDiff) {
 		const newPanSize = this._panSize - positionDiff;
 		if (newPanSize >= 0) {
@@ -98,6 +204,10 @@ export default class Zoombar {
 		}
 	}
 
+	/**
+	 * @param {number} positionDiff
+	 * @private
+	 */
 	_onRightGripDragged(positionDiff) {
 		const newPanSize = this._panSize + positionDiff;
 		if (newPanSize >= 0) {
@@ -108,6 +218,10 @@ export default class Zoombar {
 		}
 	}
 
+	/**
+	 * @param {number} positionDiff
+	 * @private
+	 */
 	_onPanDragged(positionDiff) {
 		let newLeftOverlaySize = this._leftOverlaySize + positionDiff;
 		let newRightOverlaySize = this._rightOverlaySize - positionDiff;
@@ -126,15 +240,27 @@ export default class Zoombar {
 		this._updateListener();
 	}
 
+	/**
+	 * @private
+	 */
 	_onPanDragStarted() {
 		this._pan.classList.add('_dragging');
 	}
 
+	/**
+	 * @private
+	 */
 	_onPanDragEnded() {
 		this._pan.classList.remove('_dragging');
 	}
 
+	/**
+	 * @param {Event} event
+	 * @private
+	 */
 	_onLeftOverlayClicked(event) {
+		event = /** @type {MouseEvent} */ (event);
+
 		const leftOverlayBCR = this._leftOverlay.getBoundingClientRect();
 
 		let newPanStart = event.clientX - leftOverlayBCR.left - this._leftGripSize;
@@ -147,7 +273,13 @@ export default class Zoombar {
 		this._updateListener();
 	}
 
+	/**
+	 * @param {Event} event
+	 * @private
+	 */
 	_onRightOverlayClicked(event) {
+		event = /** @type {MouseEvent} */ (event);
+
 		const rightOverlayBCR = this._rightOverlay.getBoundingClientRect();
 
 		let newPanEnd = rightOverlayBCR.right - event.clientX - this._rightGripSize;
@@ -161,6 +293,11 @@ export default class Zoombar {
 	}
 }
 
+/**
+ * @param {MouseEvent|TouchEvent} event
+ * @param {HTMLElement} target
+ * @return {number}
+ */
 function getEventX(event, target) {
 	if (!event.touches) {
 		return event.clientX;
@@ -174,48 +311,32 @@ function getEventX(event, target) {
 	return NaN;
 }
 
-const CLICKS_INACTIVITY_TIME_AFTER_DRAG = 100;
-
+/**
+ * @param {HTMLElement} container
+ * @param {HTMLElement} element
+ * @param {function(number)=} onMoved
+ * @param {function()} onStarted
+ * @param {function()} onEnded
+ */
 function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
-	const start = (event) => {
+	let containerBCR;
+	let elementBCR;
+	let mouseOffset;
+	let lastPosition;
+	let clicksInactivityTimeoutId;
+
+	/**
+	 * @param {Event} event
+	 */
+	const onStart = (event) => {
+		event = /** @type {MouseEvent|TouchEvent} */ (event);
+
 		const eventX = getEventX(event, element);
-		const containerBCR = container.getBoundingClientRect();
-		const elementBCR = element.getBoundingClientRect();
 
-		const mouseOffset = eventX - elementBCR.left;
-
-		let lastPosition = eventX - containerBCR.left;
-		const onMove = (event) => {
-			const eventX = getEventX(event, element);
-			const newPosition = eventX - containerBCR.left;
-
-			if (newPosition > mouseOffset && newPosition + elementBCR.width - mouseOffset < containerBCR.width) {
-				const diff = newPosition - lastPosition;
-				if (diff) {
-					onMoved(round(diff));
-				}
-
-				lastPosition = newPosition;
-			}
-		};
-
-		const onEnd = () => {
-			container.removeEventListener('mousemove', onMove);
-			container.removeEventListener('touchmove', onMove);
-			container.removeEventListener('mouseup', onEnd);
-			container.removeEventListener('mouseleave', onEnd);
-			container.removeEventListener('touchend', onEnd);
-
-			setTimeout(() => {
-				container.removeEventListener('click', onClick, true);
-			}, CLICKS_INACTIVITY_TIME_AFTER_DRAG);
-
-			onEnded();
-		};
-
-		const onClick = (event) => {
-			event.stopPropagation();
-		};
+		containerBCR = container.getBoundingClientRect();
+		elementBCR = element.getBoundingClientRect();
+		mouseOffset = eventX - elementBCR.left;
+		lastPosition = eventX - containerBCR.left;
 
 		container.addEventListener('mousemove', onMove);
 		container.addEventListener('touchmove', onMove);
@@ -223,12 +344,62 @@ function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted
 		container.addEventListener('mouseleave', onEnd);
 		container.addEventListener('touchend', onEnd);
 
+		if (clicksInactivityTimeoutId) {
+			clearTimeout(clicksInactivityTimeoutId);
+			clicksInactivityTimeoutId = undefined;
+		}
+
 		// Capture clicks and stop them propagation while dragging
 		container.addEventListener('click', onClick, true);
 
 		onStarted();
 	};
 
-	element.addEventListener('mousedown', start);
-	element.addEventListener('touchstart', start);
+	/**
+	 * @param {Event} event
+	 */
+	const onMove = (event) => {
+		event = /** @type {MouseEvent|TouchEvent} */ (event);
+
+		const eventX = getEventX(event, element);
+		const newPosition = eventX - containerBCR.left;
+
+		if (newPosition > mouseOffset && newPosition + elementBCR.width - mouseOffset < containerBCR.width) {
+			const diff = newPosition - lastPosition;
+			if (diff) {
+				onMoved(round(diff));
+			}
+
+			lastPosition = newPosition;
+		}
+	};
+
+	/**
+	 * @param {Event} event
+	 */
+	const onClick = (event) => {
+		event.stopPropagation();
+	};
+
+	const onEnd = () => {
+		container.removeEventListener('mousemove', onMove);
+		container.removeEventListener('touchmove', onMove);
+		container.removeEventListener('mouseup', onEnd);
+		container.removeEventListener('mouseleave', onEnd);
+		container.removeEventListener('touchend', onEnd);
+
+		clicksInactivityTimeoutId = setTimeout(() => {
+			container.removeEventListener('click', onClick, true);
+		}, CLICKS_INACTIVITY_TIME_AFTER_DRAG);
+
+		containerBCR = undefined;
+		elementBCR = undefined;
+		mouseOffset = undefined;
+		lastPosition = undefined;
+
+		onEnded();
+	};
+
+	element.addEventListener('mousedown', onStart);
+	element.addEventListener('touchstart', onStart);
 }

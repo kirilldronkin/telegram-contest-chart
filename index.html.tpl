@@ -2,13 +2,11 @@
 <html lang="en">
 	<head>
 		<title>Telegram Contest</title>
+
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-		<link rel="stylesheet" type="text/css" href="src/styles/main.css">
-		<link rel="stylesheet" type="text/css" href="src/styles/themes.css">
-
-		<script type="module" src="src/index.js"></script>
+		%STYLES%
 	</head>
 	<body>
 		<div id="select"></div>
@@ -23,6 +21,9 @@
 		</div>
 
 		<div id="legend"></div>
+
 		<div id="theme-switch-button"></div>
+
+		%SCRIPTS%
 	</body>
 </html>

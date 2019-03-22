@@ -2,12 +2,26 @@ import {noop, identity, easeInQuart, easeOutQuart} from './utils.js';
 
 const {min, max} = Math;
 
+/**
+ * @typedef {{
+ *     from: number,
+ *     to: number
+ * }}
+ */
+let Interval;
+
+/**
+ * @enum {string}
+ */
 const State = {
 	PENDING: 'pending',
 	ACTIVE: 'active',
 	COMPLETE: 'complete'
 };
 
+/**
+ * @enum {string}
+ */
 export const Timing = {
 	LINEAR: 'linear',
 	EASE_IN: 'ease-in',
@@ -15,37 +29,98 @@ export const Timing = {
 };
 
 export default class Transition {
+	/**
+	 * @param {Array<Interval>} intervals
+	 * @param {number} duration
+	 * @param {Timing} timing
+	 * @param {function(Array<number>)=} onProgress
+	 * @param {function()=} onComplete
+	 * @param {function()=} onUpdate
+	 */
 	constructor(intervals, duration, timing, onProgress = noop, onComplete = noop, onUpdate = noop) {
+		/**
+		 * @type {Array<Interval>}
+		 * @private
+		 */
 		this._intervals = intervals;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._duration = duration;
 
+		/**
+		 * @type {function(number): number}
+		 * @private
+		 */
 		this._timingFunction = {
 			[Timing.LINEAR]: identity,
 			[Timing.EASE_IN]: easeInQuart,
 			[Timing.EASE_OUT]: easeOutQuart
 		}[timing];
 
+		/**
+		 * @type {function(Array<number>)}
+		 * @private
+		 */
 		this._onProgress = onProgress;
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
 		this._onComplete = onComplete;
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
 		this._onUpdate = onUpdate;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._rafId = NaN;
+
+		/**
+		 * @type {Array<number>}
+		 * @private
+		 */
 		this._values = [];
+
+		/**
+		 * @type {State}
+		 * @private
+		 */
 		this._state = State.PENDING;
 	}
 
+	/**
+	 * @return {boolean}
+	 */
 	isPending() {
 		return this._state === State.PENDING;
 	}
 
+	/**
+	 * @return {boolean}
+	 */
 	isActive() {
 		return this._state === State.ACTIVE;
 	}
 
+	/**
+	 * @return {Array<Interval>}
+	 */
 	getIntervals() {
 		return this._intervals;
 	}
 
+	/**
+	 * @return {Array<number>}
+	 */
 	getValues() {
 		return this._values;
 	}
@@ -75,7 +150,7 @@ export default class Transition {
 				}
 			});
 
-			this._onProgress(...this._values);
+			this._onProgress(this._values);
 
 			if (passed < this._duration) {
 				this._rafId = requestAnimationFrame(step);

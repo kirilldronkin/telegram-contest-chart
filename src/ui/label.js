@@ -1,19 +1,48 @@
 import {createDiv} from '../utils.js';
 
 export default class Label {
+	/**
+	 * @param {HTMLElement} container
+	 */
 	constructor(container) {
+		/**
+		 * @type {HTMLElement}
+		 * @private
+		 */
 		this._container = container;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._titleElement;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._itemsContainer;
 
 		this._setupDOM();
 	}
 
+	/**
+	 * @param {string} title
+	 */
 	setTitle(title) {
-		this._title.textContent = title;
+		this._titleElement.textContent = title;
 	}
 
+	/**
+	 * @param {Array<{
+	 *   title: string,
+	 *   value: string,
+	 *   color: string
+	 * }>} items
+	 */
 	setItems(items) {
-		while (this._items.firstChild) {
-			this._items.removeChild(this._items.firstChild);
+		while (this._itemsContainer.firstChild) {
+			this._itemsContainer.removeChild(this._itemsContainer.firstChild);
 		}
 
 		items.forEach(({title, value, color}) => {
@@ -25,17 +54,20 @@ export default class Label {
 			itemElement.appendChild(valueElement);
 			itemElement.appendChild(titleElement);
 
-			this._items.appendChild(itemElement);
+			this._itemsContainer.appendChild(itemElement);
 		});
 	}
 
+	/**
+	 * @private
+	 */
 	_setupDOM() {
 		this._container.classList.add('label');
 
-		this._title = createDiv('label__title');
-		this._items = createDiv('label__items');
+		this._titleElement = createDiv('label__titleElement');
+		this._itemsContainer = createDiv('label__itemsContainer');
 
-		this._container.appendChild(this._title);
-		this._container.appendChild(this._items);
+		this._container.appendChild(this._titleElement);
+		this._container.appendChild(this._itemsContainer);
 	}
 }

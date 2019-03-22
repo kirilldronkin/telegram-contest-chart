@@ -2,17 +2,25 @@ import Point from './point.js';
 import Graph from './graph.js';
 import Chart, {TicksType, TicksScale} from './chart.js';
 import Cursor from './cursor.js';
+import {createDiv} from './utils.js';
 import Zoombar from './ui/zoombar.js';
 import Checkbox from './ui/checkbox.js';
 
+/**
+ * @const {string}
+ */
 const THEME_STORAGE_KEY = 'telegram-contest-chart_theme';
 
+/**
+ * @enum {string}
+ */
 const Theme = {
 	DAY: 'day',
 	NIGHT: 'night'
 };
 
-const zoomChart = new Chart(document.querySelector('#zoom-chart-canvas'), {
+const zoomChartCanvas = /** @type {HTMLCanvasElement} */ (document.querySelector('#zoom-chart-canvas'));
+const zoomChart = new Chart(zoomChartCanvas, {
 	xTicksType: TicksType.DATE,
 	yTicksType: TicksType.COMPACT,
 	yTicksScale: TicksScale.NICE,
@@ -22,7 +30,8 @@ const zoomChart = new Chart(document.querySelector('#zoom-chart-canvas'), {
 	ticksCount: 6
 });
 
-const overviewChart = new Chart(document.querySelector('#overview-chart-canvas'), {
+const overviewChartCanvas = /** @type {HTMLCanvasElement} */ (document.querySelector('#overview-chart-canvas'));
+const overviewChart = new Chart(overviewChartCanvas, {
 	xTicksType: TicksType.NONE,
 	yTicksType: TicksType.NONE,
 	topPadding: 10,
@@ -34,7 +43,7 @@ const overviewChart = new Chart(document.querySelector('#overview-chart-canvas')
 
 const cursor = new Cursor();
 
-const zoombarContainer = document.querySelector('#zoombar');
+const zoombarContainer = /** @type {HTMLElement} */ (document.querySelector('#zoombar'));
 const zoombar = new Zoombar(zoombarContainer);
 
 const legendContainer = document.querySelector('#legend');
@@ -44,20 +53,18 @@ const themeSwitchButton = document.querySelector('#theme-switch-button');
 const graphSets = [];
 const selectableCharts = [];
 
-let currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || Theme.DAY;
+let currentTheme = /** @type {Theme} */ (window.localStorage.getItem(THEME_STORAGE_KEY) || Theme.DAY);
 
 window.addEventListener('load', () => {
 	fetch('data.json')
 		.then((response) => response.json())
 		.then((json) => {
 			json.forEach((data) => {
-				const {columns, names, colors} = data;
-
-				const xs = columns[0].slice(1).map((value) => new Date(value));
-				const set = columns.slice(1).map((values) =>
+				const xs = data['columns'][0].slice(1);
+				const set = data['columns'].slice(1).map((values) =>
 					new Graph(
-						names[values[0]],
-						colors[values[0]],
+						data['names'][values[0]],
+						data['colors'][values[0]],
 						values.slice(1).map((value, index) => new Point(xs[index], value))
 					)
 				);
@@ -79,10 +86,8 @@ window.addEventListener('load', () => {
 			window.addEventListener('orientationchange', resizeAsap);
 
 			graphSets.forEach((set) => {
-				const container = document.createElement('div');
-				container.classList.add('select__chart');
-
-				const canvas = document.createElement('canvas');
+				const container = createDiv('select__chart');
+				const canvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
 				const chart = new Chart(canvas, {
 					xTicksType: TicksType.NONE,
 					yTicksType: TicksType.NONE,
@@ -110,15 +115,20 @@ window.addEventListener('load', () => {
 			});
 
 			selectTheme(currentTheme);
-			selectGraphSet(graphSets[0]);
+			if (graphSets[0]) {
+				selectGraphSet(graphSets[0]);
+			}
 		});
 });
 
+/**
+ * @param {Theme} theme
+ */
 function selectTheme(theme) {
 	document.body.classList.remove(`_${currentTheme}`);
 	document.body.classList.add(`_${theme}`);
 
-	localStorage.setItem(THEME_STORAGE_KEY, currentTheme = theme);
+	window.localStorage.setItem(THEME_STORAGE_KEY, currentTheme = theme);
 
 	themeSwitchButton.textContent = {
 		[Theme.DAY]: 'Switch to Night Mode',
@@ -138,6 +148,9 @@ function selectTheme(theme) {
 	zoomChart.draw();
 }
 
+/**
+ * @param {Array<Graph>} set
+ */
 function selectGraphSet(set) {
 	cursor.clear();
 	zoomChart.clear();
@@ -148,7 +161,7 @@ function selectGraphSet(set) {
 	}
 
 	set.forEach((graph) => {
-		const checkboxContainer = document.createElement('div');
+		const checkboxContainer = createDiv();
 		const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
 
 		checkbox.setUpdateListener(() => {

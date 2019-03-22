@@ -1,3 +1,5 @@
+import Graph from './graph.js';
+import Point from './point.js';
 import Transition, {Timing} from './transition.js';
 import {
 	identity,
@@ -12,17 +14,42 @@ import {
 
 const {ceil, floor, round} = Math;
 
+/**
+ * @const {number}
+ */
 const TRANSITION_DURATION = 350;
+
+/**
+ * @const {string}
+ */
 const GRAPH_LINE_CAP = 'round';
+
+/**
+ * @const {string}
+ */
 const GRAPH_LINE_JOIN = 'round';
+
+/**
+ * @const {string}
+ */
 const TICK_FONT = '15px Arial, Helvetica, Verdana, sans-serif';
+
+/**
+ * @const {number}
+ */
 const TICK_TEXT_BOTTOM_MARGIN = 10;
 
-const Axis = {
+/**
+ * @enum {string}
+ */
+export const Axis = {
 	X: 'x',
 	Y: 'y'
 };
 
+/**
+ * @enum {string}
+ */
 export const TicksType = {
 	NONE: 'none',
 	DECIMAL: 'decimal',
@@ -30,12 +57,32 @@ export const TicksType = {
 	DATE: 'date'
 };
 
+/**
+ * @enum {string}
+ */
 export const TicksScale = {
 	EXTREMUM: 'extremum',
 	NICE: 'nice'
 };
 
 export default class Chart {
+	/**
+	 * @param {HTMLCanvasElement} canvas
+	 * @param {{
+	 *     xTicksType: (TicksType|undefined),
+	 *     yTicksType: (TicksType|undefined),
+	 *     yTicksScale: (TicksScale|undefined),
+	 *     topPadding: (number|undefined),
+	 *     bottomPadding: (number|undefined),
+	 *     leftPadding: (number|undefined),
+	 *     rightPadding: (number|undefined),
+	 *     graphLineThickness: (number|undefined),
+	 *     ticksCount: (number|undefined),
+	 *     tickLineThickness: (number|undefined),
+	 *     tickLineColor: (string|undefined),
+	 *     tickTextColor: (string|undefined)
+	 * }=} opt
+	 */
 	constructor(canvas, {
 		xTicksType = TicksType.DECIMAL,
 		yTicksType = TicksType.DECIMAL,
@@ -50,60 +97,239 @@ export default class Chart {
 		tickLineColor = '#000',
 		tickTextColor = '#000'
 	} = {}) {
+		/**
+		 * @type {HTMLCanvasElement}
+		 * @private
+		 */
 		this._canvas = canvas;
-		this._context = canvas.getContext('2d');
 
+		/**
+		 * @type {CanvasRenderingContext2D}
+		 * @private
+		 */
+		this._context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._topPadding = topPadding;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._bottomPadding = bottomPadding;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._leftPadding = leftPadding;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._rightPadding = rightPadding;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._graphLineThickness = graphLineThickness;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._ticksCount = ticksCount;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._tickLineThickness = 1;
+
+		/**
+		 * @type {string}
+		 * @private
+		 */
 		this._tickLineColor = tickLineColor;
+
+		/**
+		 * @type {string}
+		 * @private
+		 */
 		this._tickTextColor = tickTextColor;
 
+		/**
+		 * @type {Array<Graph>}
+		 * @private
+		 */
 		this._graphs = [];
+
+		/**
+		 * @type {Map<Graph, Array<Point>>}
+		 * @private
+		 */
 		this._graphsRanges = new Map();
+
+		/**
+		 * @type {Map<Graph, number>}
+		 * @private
+		 */
 		this._graphsAlphas = new Map();
+
+		/**
+		 * @type {Map<Graph, Transition>}
+		 * @private
+		 */
 		this._graphsTransitions = new Map();
 
+		/**
+		 * @type {Array<number>}
+		 * @private
+		 */
 		this._xTicks = [];
+
+		/**
+		 * @type {TicksType}
+		 * @private
+		 */
 		this._xTicksType = xTicksType;
 
+		/**
+		 * @type {Array<number>}
+		 * @private
+		 */
 		this._yTicks = [];
+
+		/**
+		 * @type {TicksType}
+		 * @private
+		 */
 		this._yTicksType = yTicksType;
+
+		/**
+		 * @type {TicksScale}
+		 * @private
+		 */
 		this._yTicksScale = yTicksScale;
+
+		/**
+		 * @type {Map<number, number>}
+		 * @private
+		 */
 		this._yTicksAlphas = new Map();
+
+		/**
+		 * @type {?Transition}
+		 * @private
+		 */
 		this._yScaleTransition = null;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._width = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._height = NaN;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._pixelsPerX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._pixelsPerY = NaN;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._maxX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._maxXTick = NaN;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._minX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._minXTick = NaN;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._maxY = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._maxYTick = NaN;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._minY = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._minYTick = NaN;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._minRangeX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._minRangeY = NaN;
 
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._maxRangeX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._maxRangeY = NaN;
 	}
 
-	addGraph(graph = {}) {
+	/**
+	 * @param {Graph} graph
+	 */
+	addGraph(graph) {
 		if (!this._graphs.includes(graph)) {
 			this._graphs.push(graph);
 			this._graphsAlphas.set(graph, 0);
@@ -145,7 +371,7 @@ export default class Chart {
 			from: this._graphsAlphas.get(graph), to: 1
 		}];
 
-		const onTransitionProgress = (alpha) => {
+		const onTransitionProgress = ([alpha]) => {
 			this._graphsAlphas.set(graph, alpha);
 		};
 
@@ -174,6 +400,9 @@ export default class Chart {
 		this._graphsTransitions.set(graph, transition);
 	}
 
+	/**
+	 * @param {Graph} graph
+	 */
 	removeGraph(graph) {
 		const otherGraphs = this._graphs.filter((someGraph) => someGraph !== graph);
 		const otherRanges = otherGraphs.map((graph) => this._graphsRanges.get(graph));
@@ -232,7 +461,7 @@ export default class Chart {
 			from: this._graphsAlphas.get(graph), to: 0
 		}];
 
-		const onTransitionProgress = (alpha) => {
+		const onTransitionProgress = ([alpha]) => {
 			this._graphsAlphas.set(graph, alpha);
 		};
 
@@ -311,54 +540,102 @@ export default class Chart {
 		this._maxRangeY = NaN;
 	}
 
+	/**
+	 * @return {HTMLCanvasElement}
+	 */
 	getCanvas() {
 		return this._canvas;
 	}
 
+	/**
+	 * @return {Array<Graph>}
+	 */
 	getGraphs() {
 		return this._graphs;
 	}
 
+	/**
+	 * @return {number}
+	 */
 	getGraphLineThickness() {
 		return this._graphLineThickness;
 	}
 
+	/**
+	 * @return {number}
+	 */
 	getTopPadding() {
 		return this._topPadding;
 	}
 
+	/**
+	 * @return {number}
+	 */
 	getBottomPadding() {
 		return this._bottomPadding;
 	}
 
+	/**
+	 * @param {Axis} axis
+	 * @return {TicksType}
+	 */
+	getAxisTicksType(axis) {
+		return axis === Axis.X ? this._xTicksType : this._yTicksType;
+	}
+
+	/**
+	 * @param {number} pixels
+	 * @return {number}
+	 */
 	getXByPixels(pixels) {
 		let x = this._minXTick + ((pixels - this._leftPadding) / this._pixelsPerX);
 
 		return clamp(x, this._minXTick, this._maxXTick);
 	}
 
+	/**
+	 * @param {number} pixels
+	 * @return {number}
+	 */
 	getYByPixels(pixels) {
 		let y = this._minYTick + ((this._height - this._bottomPadding - pixels) / this._pixelsPerY);
 
 		return clamp(y, this._minYTick, this._maxYTick);
 	}
 
+	/**
+	 * @param {number} x
+	 * @return {number}
+	 */
 	getPixelsByX(x) {
 		return this._leftPadding + this._pixelsPerX * (x - this._minXTick);
 	}
 
+	/**
+	 * @param {number} y
+	 * @return {number}
+	 */
 	getPixelsByY(y) {
 		return this._height - this._bottomPadding - this._pixelsPerY * (y - this._minYTick);
 	}
 
+	/**
+	 * @param {string} color
+	 */
 	setTickLineColor(color) {
 		this._tickLineColor = color;
 	}
 
+	/**
+	 * @param {string} color
+	 */
 	setTickTextColor(color) {
 		this._tickTextColor = color;
 	}
 
+	/**
+	 * @return {{start: number, end: number}}
+	 */
 	getRange() {
 		return {
 			start: isNaN(this._minRangeX) ? this._minX : this._minRangeX,
@@ -366,6 +643,10 @@ export default class Chart {
 		};
 	}
 
+	/**
+	 * @param {number} startX
+	 * @param {number} endX
+	 */
 	setRange(startX, endX) {
 		this._minRangeX = startX;
 		this._maxRangeX = endX;
@@ -391,6 +672,11 @@ export default class Chart {
 		});
 	}
 
+	/**
+	 * @param {number} value
+	 * @param {Axis} axis
+	 * @return {string}
+	 */
 	formatValue(value, axis) {
 		const type = axis === Axis.X ? this._xTicksType : this._yTicksType;
 
@@ -399,7 +685,7 @@ export default class Chart {
 				(this._maxXTick - this._minXTick) / this._xTicks.length :
 				(this._maxYTick - this._minYTick) / this._yTicks.length;
 
-			return formatDate((value instanceof Date ? value : new Date(value)), spacing);
+			return formatDate(new Date(value), spacing);
 		}
 
 		if (type === TicksType.COMPACT) {
@@ -438,6 +724,9 @@ export default class Chart {
 		this._draw();
 	}
 
+	/**
+	 * @private
+	 */
 	_prepareCanvas() {
 		this._context.setTransform(1, 0, 0, 1, 0, 0);
 		this._context.clearRect(0, 0, this._width, this._height);
@@ -448,12 +737,18 @@ export default class Chart {
 		this._context.translate(translateX * -1, translateY);
 	}
 
+	/**
+	 * @private
+	 */
 	_draw() {
 		this._prepareCanvas();
 		this._drawTicks();
 		this._drawGraphs();
 	}
 
+	/**
+	 * @private
+	 */
 	_drawGraphs() {
 		this._context.lineCap = GRAPH_LINE_CAP;
 		this._context.lineJoin = GRAPH_LINE_JOIN;
@@ -488,6 +783,9 @@ export default class Chart {
 		});
 	}
 
+	/**
+	 * @private
+	 */
 	_drawTicks() {
 		this._context.font = TICK_FONT;
 		this._context.lineWidth = this._tickLineThickness;
@@ -539,6 +837,9 @@ export default class Chart {
 		}
 	}
 
+	/**
+	 * @private
+	 */
 	_scaleXAxis() {
 		const minX = isNaN(this._minRangeX) ? this._minX : this._minRangeX;
 		const maxX = isNaN(this._maxRangeX) ? this._maxX : this._maxRangeX;
@@ -558,6 +859,9 @@ export default class Chart {
 		}
 	}
 
+	/**
+	 * @private
+	 */
 	_scaleYAxis() {
 		const minY = isNaN(this._minRangeY) ? this._minY : this._minRangeY;
 		const maxY = isNaN(this._maxRangeY) ? this._maxY : this._maxRangeY;
@@ -631,7 +935,7 @@ export default class Chart {
 			{from: 0, to: 1}
 		];
 
-		const onTransitionProgress = (minYTick, maxYTick, alphaDiff) => {
+		const onTransitionProgress = ([minYTick, maxYTick, alphaDiff]) => {
 			this._minYTick = minYTick;
 			this._maxYTick = maxYTick;
 

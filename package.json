@@ -1,0 +1,19 @@
+{
+  "name": "telegram-contest-chart",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build": "node scripts/build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kirilldronkin/telegram-contest-chart.git"
+  },
+  "dependencies": {
+    "autoprefixer": "^9.5.0",
+    "cssnano": "^4.1.10",
+    "express": "^4.16.4",
+    "google-closure-compiler": "^20190301.0.0",
+    "postcss": "^7.0.14"
+  }
+}
