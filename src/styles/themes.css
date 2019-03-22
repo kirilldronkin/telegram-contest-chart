@@ -4,11 +4,11 @@ body._day {
 	background: #fff;
 }
 
-body._day .select__item:hover {
+body._day .select__chart:hover {
 	background: #ced4d7;
 }
 
-body._day .select__item._active {
+body._day .select__chart._active {
 	border-color: #ced4d7;
 }
 
@@ -56,11 +56,11 @@ body._night {
 	background: #252f3f;
 }
 
-body._night .select__item:hover {
+body._night .select__chart:hover {
 	background: #4e5e6f;
 }
 
-body._night .select__item._active {
+body._night .select__chart._active {
 	border-color: #4e5e6f;
 }
 

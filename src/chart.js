@@ -319,6 +319,10 @@ export default class Chart {
 		return this._graphs;
 	}
 
+	getGraphLineThickness() {
+		return this._graphLineThickness;
+	}
+
 	getTopPadding() {
 		return this._topPadding;
 	}
@@ -357,8 +361,8 @@ export default class Chart {
 
 	getRange() {
 		return {
-			start: this._minRangeX,
-			end: this._maxRangeX
+			start: isNaN(this._minRangeX) ? this._minX : this._minRangeX,
+			end: isNaN(this._maxRangeX) ? this._maxX : this._maxRangeX
 		};
 	}
 
@@ -411,6 +415,9 @@ export default class Chart {
 
 		this._canvas.width = this._width;
 		this._canvas.height = this._height;
+
+		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxXTick - this._minXTick);
+		this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxYTick - this._minYTick);
 	}
 
 	draw() {

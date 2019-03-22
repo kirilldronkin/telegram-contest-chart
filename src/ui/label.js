@@ -8,21 +8,20 @@ export default class Label {
 	}
 
 	setTitle(title) {
-		this._title.innerText = title;
+		this._title.textContent = title;
 	}
 
 	setItems(items) {
-		this._items.innerHTML = '';
+		while (this._items.firstChild) {
+			this._items.removeChild(this._items.firstChild);
+		}
 
 		items.forEach(({title, value, color}) => {
 			const itemElement = createDiv('label__item');
-			const valueElement = createDiv('label__item-value');
-			const titleElement = createDiv('label__item-title');
+			const valueElement = createDiv('label__item-value', value);
+			const titleElement = createDiv('label__item-title', title);
 
 			itemElement.style.color = color;
-			valueElement.innerText = value;
-			titleElement.innerText = title;
-
 			itemElement.appendChild(valueElement);
 			itemElement.appendChild(titleElement);
 

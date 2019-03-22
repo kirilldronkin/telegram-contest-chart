@@ -74,20 +74,22 @@ window.addEventListener('load', () => {
 				selectTheme(currentTheme === Theme.DAY ? Theme.NIGHT : Theme.DAY);
 			});
 
-			window.addEventListener('resize', resize);
+			const resizeAsap = () => setTimeout(resize, 0);
+			window.addEventListener('resize', resizeAsap);
+			window.addEventListener('orientationchange', resizeAsap);
 
 			graphSets.forEach((set) => {
 				const container = document.createElement('div');
-				container.classList.add('select__item');
+				container.classList.add('select__chart');
 
 				const canvas = document.createElement('canvas');
 				const chart = new Chart(canvas, {
 					xTicksType: TicksType.NONE,
 					yTicksType: TicksType.NONE,
-					topPadding: 10,
-					bottomPadding: 10,
-					leftPadding: 10,
-					rightPadding: 10,
+					topPadding: 5,
+					bottomPadding: 5,
+					leftPadding: 5,
+					rightPadding: 5,
 					graphLineThickness: 1
 				});
 
@@ -118,7 +120,7 @@ function selectTheme(theme) {
 
 	localStorage.setItem(THEME_STORAGE_KEY, currentTheme = theme);
 
-	themeSwitchButton.innerText = {
+	themeSwitchButton.textContent = {
 		[Theme.DAY]: 'Switch to Night Mode',
 		[Theme.NIGHT]: 'Switch to Day Mode'
 	}[theme];
@@ -137,6 +139,7 @@ function selectTheme(theme) {
 }
 
 function selectGraphSet(set) {
+	cursor.clear();
 	zoomChart.clear();
 	overviewChart.clear();
 
@@ -149,19 +152,30 @@ function selectGraphSet(set) {
 		const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
 
 		checkbox.setUpdateListener(() => {
+			let shouldUpdateZoomRange = false;
 			if (checkbox.isChecked()) {
-				zoomChart.addGraph(graph);
-				zoomChart.draw();
+				if (!overviewChart.getGraphs().length) {
+					shouldUpdateZoomRange = true;
+				}
 
+				zoomChart.addGraph(graph);
 				overviewChart.addGraph(graph);
-				overviewChart.draw();
 			} else {
 				zoomChart.removeGraph(graph);
-				zoomChart.draw();
-
 				overviewChart.removeGraph(graph);
-				overviewChart.draw();
 			}
+
+			overviewChart.draw();
+
+			if (shouldUpdateZoomRange) {
+				const range = zoombar.getRange();
+				zoomChart.setRange(
+					overviewChart.getXByPixels(range.start),
+					overviewChart.getXByPixels(range.end)
+				);
+			}
+
+			zoomChart.draw();
 		});
 
 		zoomChart.addGraph(graph);
@@ -181,11 +195,7 @@ function selectGraphSet(set) {
 
 	Array.from(selectContainer.childNodes)
 		.forEach((child, index) => {
-			child.classList.remove('_active');
-
-			if (index === graphSets.indexOf(set)) {
-				child.classList.add('_active');
-			}
+			child.classList.toggle('_active', index === graphSets.indexOf(set));
 		});
 }
 
@@ -196,20 +206,21 @@ function resize() {
 	});
 
 	const range = zoomChart.getRange();
+	const startPixels = overviewChart.getPixelsByX(range.start);
+	const endPixels = overviewChart.getPixelsByX(range.end);
 
-	zoombar.setRange(
-		overviewChart.getPixelsByX(range.start),
-		overviewChart.getPixelsByX(range.end)
-	)
+	zoombar.setRange(startPixels, endPixels);
+
+	cursor.clear();
 }
 
 function zoom() {
 	const range = zoombar.getRange();
+	const startX = overviewChart.getXByPixels(range.start);
+	const endX = overviewChart.getXByPixels(range.end);
 
-	zoomChart.setRange(
-		overviewChart.getXByPixels(range.start),
-		overviewChart.getXByPixels(range.end)
-	);
-
+	zoomChart.setRange(startX, endX);
 	zoomChart.draw();
+
+	cursor.clear();
 }

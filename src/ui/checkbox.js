@@ -29,11 +29,8 @@ export default class Checkbox {
 		this._icon.style.borderColor = this._color;
 		this._icon.appendChild(createDiv('checkbox__mark'));
 
-		const text = createDiv('checkbox__text');
-		text.innerText = this._name;
-
 		this._container.appendChild(this._icon);
-		this._container.appendChild(text);
+		this._container.appendChild(createDiv('checkbox__text', this._name));
 	}
 
 	_listenDOMEvents() {

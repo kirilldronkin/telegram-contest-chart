@@ -6,11 +6,15 @@ function identity(value) {
 	return value;
 }
 
-function createDiv(className) {
+function createDiv(className, text) {
 	const div = document.createElement('div');
 
 	if (className) {
 		div.classList.add(className);
+	}
+
+	if (text) {
+		div.textContent = text;
 	}
 
 	return div;

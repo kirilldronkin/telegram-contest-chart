@@ -1,10 +1,9 @@
 import Label from './ui/label.js';
-import {createDiv} from './utils.js';
+import {createDiv, clamp} from './utils.js';
 
 const {abs} = Math;
 
 const LABEL_MARGIN = 10;
-const X_AXIS_HIT_TOLERANCE = 3;
 
 export default class Cursor {
 	constructor() {
@@ -29,6 +28,14 @@ export default class Cursor {
 		this._area = chart.getCanvas().parentNode;
 		this._area.addEventListener('mousemove', this._onMouseMoveBinded);
 		this._area.addEventListener('mouseleave', this._onMouseLeaveBinded);
+	}
+
+	clear() {
+		if (this._markers.length) {
+			this._removeAllMarkers();
+			this._removeRuler();
+			this._removeLabel();
+		}
 	}
 
 	_addMarker(graph, point) {
@@ -66,16 +73,16 @@ export default class Cursor {
 		}
 	}
 
-	_addLabel(nearestToCursorPoint, pointsByGraph, offset) {
-		this._label.setTitle(nearestToCursorPoint.x instanceof Date ?
-				nearestToCursorPoint.x.toLocaleDateString('en-us', {
+	_addLabel(offset, nearestPoint, pointsByGraph) {
+		this._label.setTitle(nearestPoint.x instanceof Date ?
+				nearestPoint.x.toLocaleDateString('en-us', {
 					'weekday': 'short',
 					'month': 'short',
 					'day': 'numeric',
 					'hour': 'numeric',
 					'minute': 'numeric'
 				}) :
-				this._chart.formatValue(nearestToCursorPoint.x, 'x')
+				this._chart.formatValue(nearestPoint.x, 'x')
 		);
 
 		this._label.setItems(
@@ -90,11 +97,16 @@ export default class Cursor {
 
 		this._area.appendChild(this._labelContainer);
 
+		const areaSize = this._area.offsetWidth;
+		const labelSize = this._labelContainer.offsetWidth;
+
 		let position;
-		if (offset + this._labelContainer.offsetWidth > this._area.offsetWidth) {
-			position = offset - this._labelContainer.offsetWidth - LABEL_MARGIN;
-		} else {
+		if (offset + labelSize + LABEL_MARGIN <= areaSize) {
 			position = offset + LABEL_MARGIN;
+		} else if (labelSize + LABEL_MARGIN <= offset) {
+			position = offset - labelSize - LABEL_MARGIN;
+		} else {
+			position = clamp(offset - (labelSize / 2), 0, areaSize);
 		}
 
 		this._labelContainer.style.left = `${position}px`;
@@ -109,12 +121,13 @@ export default class Cursor {
 	_onMouseMove(event) {
 		const areaBCR = this._area.getBoundingClientRect();
 
-		const areaX = event.clientX - areaBCR.left;
 		const areaY = event.clientY - areaBCR.top;
-
 		const chartY = this._chart.getYByPixels(areaY);
-		const minChartX = this._chart.getXByPixels(areaX - X_AXIS_HIT_TOLERANCE);
-		const maxChartX = this._chart.getXByPixels(areaX + X_AXIS_HIT_TOLERANCE);
+
+		const areaX = event.clientX - areaBCR.left;
+		const lineThickness = this._chart.getGraphLineThickness();
+		const minChartX = this._chart.getXByPixels(areaX - lineThickness);
+		const maxChartX = this._chart.getXByPixels(areaX + lineThickness);
 
 		const drawnGraphs = this._chart.getGraphs();
 		const foundPointsByGraph = new Map();
@@ -129,32 +142,28 @@ export default class Cursor {
 			}
 		});
 
-		this._removeLabel();
-		this._removeRuler();
-		this._removeAllMarkers();
+		this.clear();
 
 		if (foundPointsByGraph.size) {
-			let nearestToCursorPoint;
+			let nearestPoint;
 
 			Array.from(foundPointsByGraph.entries())
 				.forEach(([graph, point]) => {
 					this._addMarker(graph, point);
 
-					if (!nearestToCursorPoint || abs(chartY - point.y) < abs(chartY - nearestToCursorPoint.y)) {
-						nearestToCursorPoint = point;
+					if (!nearestPoint || abs(chartY - point.y) < abs(chartY - nearestPoint.y)) {
+						nearestPoint = point;
 					}
 				});
 
-			const offset = this._chart.getPixelsByX(nearestToCursorPoint.x);
+			const offset = this._chart.getPixelsByX(nearestPoint.x);
 
 			this._addRuler(offset);
-			this._addLabel(nearestToCursorPoint, foundPointsByGraph, offset);
+			this._addLabel(offset, nearestPoint, foundPointsByGraph);
 		}
 	}
 
 	_onMouseLeave() {
-		this._removeLabel();
-		this._removeRuler();
-		this._removeAllMarkers();
+		this.clear();
 	}
 }

@@ -161,14 +161,24 @@ export default class Zoombar {
 	}
 }
 
-function getEventXCoordinate(event) {
-	return event.targetTouches ? event.targetTouches[0].clientX : event.clientX;
+function getEventX(event, target) {
+	if (!event.touches) {
+		return event.clientX;
+	}
+
+	const touch = Array.from(event.touches).find((touch) => touch.target === target);
+	if (touch) {
+		return touch.clientX;
+	}
+
+	return NaN;
 }
 
-function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
-	const listener =  (event) => {
-		const eventX = getEventXCoordinate(event);
+const CLICKS_INACTIVITY_TIME_AFTER_DRAG = 100;
 
+function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
+	const start = (event) => {
+		const eventX = getEventX(event, element);
 		const containerBCR = container.getBoundingClientRect();
 		const elementBCR = element.getBoundingClientRect();
 
@@ -176,7 +186,7 @@ function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted
 
 		let lastPosition = eventX - containerBCR.left;
 		const onMove = (event) => {
-			const eventX = getEventXCoordinate(event);
+			const eventX = getEventX(event, element);
 			const newPosition = eventX - containerBCR.left;
 
 			if (newPosition > mouseOffset && newPosition + elementBCR.width - mouseOffset < containerBCR.width) {
@@ -196,7 +206,15 @@ function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted
 			container.removeEventListener('mouseleave', onEnd);
 			container.removeEventListener('touchend', onEnd);
 
+			setTimeout(() => {
+				container.removeEventListener('click', onClick, true);
+			}, CLICKS_INACTIVITY_TIME_AFTER_DRAG);
+
 			onEnded();
+		};
+
+		const onClick = (event) => {
+			event.stopPropagation();
 		};
 
 		container.addEventListener('mousemove', onMove);
@@ -205,9 +223,12 @@ function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted
 		container.addEventListener('mouseleave', onEnd);
 		container.addEventListener('touchend', onEnd);
 
+		// Capture clicks and stop them propagation while dragging
+		container.addEventListener('click', onClick, true);
+
 		onStarted();
 	};
 
-	element.addEventListener('mousedown', listener);
-	element.addEventListener('touchstart', listener);
+	element.addEventListener('mousedown', start);
+	element.addEventListener('touchstart', start);
 }
