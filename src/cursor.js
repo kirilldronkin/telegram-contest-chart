@@ -50,6 +50,12 @@ export default class Cursor {
 		this._label = new Label(this._labelContainer);
 
 		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._touchRadiusX = NaN;
+
+		/**
 		 * @type {function(Event)}
 		 * @private
 		 */
@@ -60,6 +66,12 @@ export default class Cursor {
 		 * @private
 		 */
 		this._onMouseLeaveBinded = this._onMouseLeave.bind(this);
+
+		/**
+		 * @type {function(Event)}
+		 * @private
+		 */
+		this._onTouchStartBinded = this._onTouchStart.bind(this)
 	}
 
 	/**
@@ -69,11 +81,13 @@ export default class Cursor {
 		if (this._area) {
 			this._area.removeEventListener('mousemove', this._onMouseMoveBinded);
 			this._area.removeEventListener('mouseleave', this._onMouseLeaveBinded);
+			this._area.removeEventListener('touchstart', this._onTouchStartBinded);
 		}
 
 		this._area = /** @type {HTMLElement} */ (chart.getCanvas().parentElement);
 		this._area.addEventListener('mousemove', this._onMouseMoveBinded);
 		this._area.addEventListener('mouseleave', this._onMouseLeaveBinded);
+		this._area.addEventListener('touchstart', this._onTouchStartBinded);
 
 		this._chart = chart;
 	}
@@ -202,15 +216,15 @@ export default class Cursor {
 	_onMouseMove(event) {
 		event = /** @type {MouseEvent} */ (event);
 
-		const areaBCR = this._area.getBoundingClientRect();
-		const areaX = event.clientX - areaBCR.left;
-		const areaY = event.clientY - areaBCR.top;
+		const areaRect = this._area.getBoundingClientRect();
+		const areaX = event.clientX - areaRect.left;
+		const areaY = event.clientY - areaRect.top;
 
-		const lineThickness = this._chart.getGraphLineThickness();
+		const toleranceX = this._touchRadiusX || this._chart.getGraphLineThickness();
+		const minChartX = this._chart.getXByPixels(areaX - toleranceX);
+		const maxChartX = this._chart.getXByPixels(areaX + toleranceX);
 
 		const chartY = this._chart.getYByPixels(areaY);
-		const minChartX = this._chart.getXByPixels(areaX - lineThickness);
-		const maxChartX = this._chart.getXByPixels(areaX + lineThickness);
 
 		const drawnGraphs = this._chart.getGraphs();
 		const foundPointsByGraph = new Map();
@@ -226,6 +240,8 @@ export default class Cursor {
 		});
 
 		this.clear();
+
+		this._touchRadiusX = NaN;
 
 		if (foundPointsByGraph.size) {
 			let nearestPoint;
@@ -243,6 +259,21 @@ export default class Cursor {
 
 			this._addRuler(offset);
 			this._addLabel(offset, nearestPoint, foundPointsByGraph);
+		}
+	}
+
+	/**
+	 * @param {Event} event
+	 * @private
+	 */
+	_onTouchStart(event) {
+		event = /** @type {TouchEvent} */ (event);
+
+		const canvas = this._chart.getCanvas();
+
+		const touch = Array.from(event.touches).find((touch) => touch.target === canvas);
+		if (touch) {
+			this._touchRadiusX = touch.radiusX || NaN;
 		}
 	}
 

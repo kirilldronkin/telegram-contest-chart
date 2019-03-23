@@ -644,6 +644,13 @@ export default class Chart {
 	}
 
 	/**
+	 * @param {number} thickness
+	 */
+	setGraphLineThickness(thickness) {
+		this._graphLineThickness = thickness;
+	}
+
+	/**
 	 * @param {string} color
 	 */
 	setTickLineColor(color) {

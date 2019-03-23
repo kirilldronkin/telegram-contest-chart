@@ -29,6 +29,8 @@ const Theme = {
 	NIGHT: 'night'
 };
 
+const mobileMedia = window.matchMedia(MOBILE_MEDIA_QUERY);
+
 const zoomChartCanvas = /** @type {HTMLCanvasElement} */ (document.querySelector('#zoom-chart-canvas'));
 const zoomChart = new Chart(zoomChartCanvas, {
 	xTicksType: TicksType.DATE,
@@ -37,7 +39,7 @@ const zoomChart = new Chart(zoomChartCanvas, {
 	yTicksBackground: true,
 	topPadding: 30,
 	bottomPadding: 40,
-	graphLineThickness: 3,
+	graphLineThickness: mobileMedia.matches ? 2 : 3,
 	ticksCount: 6,
 	emptyText: 'No data'
 });
@@ -50,7 +52,7 @@ const overviewChart = new Chart(overviewChartCanvas, {
 	bottomPadding: 10,
 	leftPadding: 15,
 	rightPadding: 15,
-	graphLineThickness: 2
+	graphLineThickness: mobileMedia.matches ? 1 : 2
 });
 
 const cursor = new Cursor();
@@ -94,9 +96,13 @@ window.addEventListener('load', () => {
 				selectTheme(currentTheme === Theme.DAY ? Theme.NIGHT : Theme.DAY);
 			});
 
-			const mobileMedia = window.matchMedia(MOBILE_MEDIA_QUERY);
+			mobileMedia.addListener(() => {
+				zoomChart.setGraphLineThickness(mobileMedia.matches ? 2 : 3);
+				overviewChart.setGraphLineThickness(mobileMedia.matches ? 1 : 2);
 
-			mobileMedia.addListener(resize);
+				resize();
+			});
+
 			window.addEventListener('resize', resize);
 			window.addEventListener('orientationchange', resize);
 
