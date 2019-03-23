@@ -38,7 +38,8 @@ const zoomChart = new Chart(zoomChartCanvas, {
 	topPadding: 30,
 	bottomPadding: 40,
 	graphLineThickness: 3,
-	ticksCount: 6
+	ticksCount: 6,
+	emptyText: 'No data'
 });
 
 const overviewChartCanvas = /** @type {HTMLCanvasElement} */ (document.querySelector('#overview-chart-canvas'));

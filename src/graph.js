@@ -56,18 +56,34 @@ export default class Graph {
 			return [];
 		}
 
-		const startPointIndex = findIndexByX(startX, this.points, (x, index) => {
+		let startPointIndex = findIndexByX(startX, this.points, (x, index) => {
 			const prev = this.points[index - 1];
 
 			return x >= startX && (!prev || prev.x < startX);
 		});
 
+		if (startPointIndex === -1) {
+			startPointIndex = 0;
+		}
+
 		const restPoints = this.points.slice(startPointIndex);
-		const endPointIndex = startPointIndex + findIndexByX(endX, restPoints, (x, index) => {
+
+		let endPointIndex = findIndexByX(endX, restPoints, (x, index) => {
 			const next = restPoints[index + 1];
 
 			return x <= endX && (!next || next.x > endX);
 		});
+
+		if (endPointIndex === -1) {
+			const lastPointIndex = this.points.length - 1;
+			if (endX > this.points[lastPointIndex].x) {
+				endPointIndex = lastPointIndex;
+			} else {
+				endPointIndex = startPointIndex;
+			}
+		} else {
+			endPointIndex = startPointIndex + endPointIndex;
+		}
 
 		const rangePoints = this.points.slice(startPointIndex, endPointIndex + 1);
 
@@ -80,7 +96,7 @@ export default class Graph {
 		}
 
 		const endPoint = this.points[endPointIndex];
-		if (endPoint.x !== endX) {
+		if (endPoint.x !== endX && !(endPoint === startPoint && startPoint.x > endX)) {
 			const pointAfterEnd = this.points[endPointIndex + 1];
 			if (pointAfterEnd) {
 				rangePoints.push(endPoint.interpolate(endX, pointAfterEnd));
@@ -103,7 +119,7 @@ function findIndexByX(x, points, predicate) {
 	let middle = floor((start + stop) / 2);
 
 	let isFound;
-	while (!(isFound = predicate(points[middle].x, middle)) && start < stop) {
+	while (points[middle] && !(isFound = predicate(points[middle].x, middle)) && start < stop) {
 		if (x < points[middle].x) {
 			stop = middle - 1;
 		} else {

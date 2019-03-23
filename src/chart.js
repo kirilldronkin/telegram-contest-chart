@@ -22,12 +22,7 @@ const TRANSITION_DURATION = 350;
 /**
  * @const {string}
  */
-const GRAPH_LINE_CAP = 'round';
-
-/**
- * @const {string}
- */
-const GRAPH_LINE_JOIN = 'round';
+const NO_DATA_TEXT_FONT = '20px Arial, Helvetica, Verdana, sans-serif';
 
 /**
  * @const {string}
@@ -83,7 +78,8 @@ export default class Chart {
 	 *     tickLineThickness: (number|undefined),
 	 *     tickLineColor: (string|undefined),
 	 *     tickTextColor: (string|undefined),
-	 *     tickBackgroundColor: (string|undefined)
+	 *     tickBackgroundColor: (string|undefined),
+	 *     emptyText: (string|undefined)
 	 * }=} opt
 	 */
 	constructor(canvas, {
@@ -101,7 +97,8 @@ export default class Chart {
 		tickLineThickness = 1,
 		tickLineColor = '#000',
 		tickTextColor = '#000',
-		tickBackgroundColor = '#000'
+		tickBackgroundColor = '#000',
+		emptyText = ''
 	} = {}) {
 		/**
 		 * @type {HTMLCanvasElement}
@@ -174,6 +171,12 @@ export default class Chart {
 		 * @private
 		 */
 		this._tickBackgroundColor = tickBackgroundColor;
+
+		/**
+		 * @type {string}
+		 * @private
+		 */
+		this._emptyText = emptyText;
 
 		/**
 		 * @type {Array<Graph>}
@@ -777,6 +780,10 @@ export default class Chart {
 		this._drawGrid();
 		this._drawGraphs();
 		this._drawTicks();
+
+		if (this._minRangeX === this._maxRangeX || isNaN(this._minX) && isNaN(this._maxX)) {
+			this._drawEmptyText();
+		}
 	}
 
 	/**
@@ -806,8 +813,8 @@ export default class Chart {
 	 * @private
 	 */
 	_drawGraphs() {
-		this._context.lineCap = GRAPH_LINE_CAP;
-		this._context.lineJoin = GRAPH_LINE_JOIN;
+		this._context.lineCap = 'round';
+		this._context.lineJoin = 'round';
 		this._context.lineWidth = this._graphLineThickness;
 
 		this._graphs.forEach((graph) => {
@@ -905,11 +912,31 @@ export default class Chart {
 	/**
 	 * @private
 	 */
+	_drawEmptyText() {
+		this._context.font = NO_DATA_TEXT_FONT;
+		this._context.textBaseline = 'middle';
+		this._context.textAlign = 'center';
+
+		this._context.fillStyle = this._tickTextColor;
+		this._context.fillText(this._emptyText, this._width / 2, this._height / 2);
+	}
+
+	/**
+	 * @private
+	 */
 	_scaleXAxis() {
 		const minX = isNaN(this._minRangeX) ? this._minX : this._minRangeX;
 		const maxX = isNaN(this._maxRangeX) ? this._maxX : this._maxRangeX;
 
 		const spacing = (maxX - minX) / this._ticksCount;
+		if (!spacing) {
+			this._minXTick = NaN;
+			this._maxXTick = NaN;
+			this._pixelsPerX = NaN;
+			this._xTicks = [];
+
+			return;
+		}
 
 		this._minXTick = minX;
 		this._maxXTick = maxX;
