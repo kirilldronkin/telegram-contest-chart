@@ -182,6 +182,12 @@ export default class Chart {
 		this._graphs = [];
 
 		/**
+		 * @type {Array<Graph>}
+		 * @private
+		 */
+		this._removingGraphs = [];
+
+		/**
 		 * @type {Map<Graph, Array<Point>>}
 		 * @private
 		 */
@@ -356,14 +362,17 @@ export default class Chart {
 	addGraph(graph) {
 		if (!this._graphs.includes(graph)) {
 			this._graphs.push(graph);
-			this._graphsAlphas.set(graph, 0);
-
-			const range = isNaN(this._minRangeX) || isNaN(this._maxRangeX) ?
-				graph.points :
-				graph.getRange(this._minRangeX, this._maxRangeX);
-
-			this._graphsRanges.set(graph, range);
 		}
+
+		if (!this._graphsAlphas.has(graph)) {
+			this._graphsAlphas.set(graph, 0);
+		}
+
+		const range = isNaN(this._minRangeX) || isNaN(this._maxRangeX) ?
+			graph.points :
+			graph.getRange(this._minRangeX, this._maxRangeX);
+
+		this._graphsRanges.set(graph, range);
 
 		const {x: minX, y: minY} = graph.getMin();
 		if (isNaN(this._minX) || minX < this._minX) {
@@ -428,7 +437,9 @@ export default class Chart {
 	 * @param {Graph} graph
 	 */
 	removeGraph(graph) {
-		const otherGraphs = this._graphs.filter((someGraph) => someGraph !== graph);
+		const otherGraphs = this._graphs.filter((someGraph) =>
+			someGraph !== graph && !this._removingGraphs.includes(someGraph)
+		);
 		const otherRanges = otherGraphs.map((graph) => this._graphsRanges.get(graph));
 
 		const {x: minX, y: minY} = graph.getMin();
@@ -491,6 +502,8 @@ export default class Chart {
 
 		const onTransitionComplete = () => {
 			this._graphs.splice(this._graphs.indexOf(graph), 1);
+			this._removingGraphs.splice(this._removingGraphs.indexOf(graph), 1);
+
 			this._graphsAlphas.delete(graph);
 			this._graphsRanges.delete(graph);
 			this._graphsTransitions.delete(graph);
@@ -500,13 +513,18 @@ export default class Chart {
 			this._draw();
 		};
 
+		const onTransitionCancel = () => {
+			this._removingGraphs.splice(this._removingGraphs.indexOf(graph), 1);
+		};
+
 		const transition = new Transition(
 			transitionIntervals,
 			TRANSITION_DURATION,
 			Timing.EASE_IN,
 			onTransitionProgress,
 			onTransitionComplete,
-			onTransitionUpdate
+			onTransitionUpdate,
+			onTransitionCancel
 		);
 
 		const currentTransition = this._graphsTransitions.get(graph);
@@ -514,26 +532,18 @@ export default class Chart {
 			currentTransition.stop();
 		}
 
-		this._graphsTransitions.set(graph, transition);
+		if (isNaN(this._minX) && isNaN(this._maxX)) {
+			this._stopAllTransitions();
+			this._clearGraphs();
+		} else {
+			this._graphsTransitions.set(graph, transition);
+			this._removingGraphs.push(graph);
+		}
 	}
 
 	clear() {
-		if (this._yScaleTransition) {
-			this._yScaleTransition.stop();
-			this._yScaleTransition = null;
-		}
-
-		Array.from(this._graphsTransitions.values())
-			.forEach((transition) => {
-				if (transition.isActive()) {
-					transition.stop();
-				}
-			});
-
-		this._graphs.length = 0;
-		this._graphsRanges.clear();
-		this._graphsAlphas.clear();
-		this._graphsTransitions.clear();
+		this._stopAllTransitions();
+		this._clearGraphs();
 
 		this._xTicks.length = 0;
 		this._yTicks.length = 0;
@@ -676,8 +686,13 @@ export default class Chart {
 	 */
 	getRange() {
 		return {
-			start: isNaN(this._minRangeX) ? this._minX : this._minRangeX,
-			end: isNaN(this._maxRangeX) ? this._maxX : this._maxRangeX
+			start: isNaN(this._minRangeX) ?
+				this._minX :
+				this._minRangeX,
+
+			end: isNaN(this._maxRangeX) ?
+				this._maxX :
+				this._maxRangeX
 		};
 	}
 
@@ -695,6 +710,12 @@ export default class Chart {
 		this._graphs.forEach((graph) => {
 			const range = graph.getRange(startX, endX);
 
+			this._graphsRanges.set(graph, range);
+
+			if (this._removingGraphs.includes(graph)) {
+				return;
+			}
+
 			const minY = findMin(range, (point) => point.y);
 			const maxY = findMax(range, (point) => point.y);
 
@@ -705,8 +726,6 @@ export default class Chart {
 			if (isNaN(this._maxRangeY) || maxY > this._maxRangeY) {
 				this._maxRangeY = maxY;
 			}
-
-			this._graphsRanges.set(graph, range);
 		});
 	}
 
@@ -962,9 +981,18 @@ export default class Chart {
 		const minY = isNaN(this._minRangeY) ? this._minY : this._minRangeY;
 		const maxY = isNaN(this._maxRangeY) ? this._maxY : this._maxRangeY;
 
-		const isNice = this._yTicksScale === TicksScale.NICE;
-
 		let spacing = (maxY - minY) / this._ticksCount;
+		if (!spacing) {
+			this._minYTick = NaN;
+			this._maxYTick = NaN;
+			this._pixelsPerY = NaN;
+			this._yTicks = [];
+			this._yTicksAlphas.clear();
+
+			return;
+		}
+
+		const isNice = this._yTicksScale === TicksScale.NICE;
 		if (isNice) {
 			spacing = niceNumber(spacing);
 
@@ -1074,6 +1102,35 @@ export default class Chart {
 			onTransitionComplete,
 			onTransitionUpdate
 		);
+	}
+
+	/**
+	 * @private
+	 */
+	_stopAllTransitions() {
+		if (this._yScaleTransition) {
+			this._yScaleTransition.stop();
+			this._yScaleTransition = null;
+		}
+
+		Array.from(this._graphsTransitions.values())
+			.forEach((transition) => {
+				if (transition.isActive()) {
+					transition.stop();
+				}
+			});
+	}
+
+	/**
+	 * @private
+	 */
+	_clearGraphs() {
+		this._graphs.length = 0;
+		this._removingGraphs.length = 0;
+
+		this._graphsRanges.clear();
+		this._graphsAlphas.clear();
+		this._graphsTransitions.clear();
 	}
 }
 

@@ -36,8 +36,9 @@ export default class Transition {
 	 * @param {function(Array<number>)=} onProgress
 	 * @param {function()=} onComplete
 	 * @param {function()=} onUpdate
+	 * @param {function()=} onCancel
 	 */
-	constructor(intervals, duration, timing, onProgress = noop, onComplete = noop, onUpdate = noop) {
+	constructor(intervals, duration, timing, onProgress = noop, onComplete = noop, onUpdate = noop, onCancel = noop) {
 		/**
 		 * @type {Array<Interval>}
 		 * @private
@@ -77,6 +78,12 @@ export default class Transition {
 		 * @private
 		 */
 		this._onUpdate = onUpdate;
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
+		this._onCancel = onCancel;
 
 		/**
 		 * @type {number}
@@ -175,6 +182,9 @@ export default class Transition {
 		cancelAnimationFrame(this._rafId);
 
 		this._state = State.PENDING;
+		this._values = [];
+
+		this._onCancel();
 	}
 
 	_throwInvalidState() {

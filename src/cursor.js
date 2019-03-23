@@ -241,8 +241,6 @@ export default class Cursor {
 
 		this.clear();
 
-		this._touchRadiusX = NaN;
-
 		if (foundPointsByGraph.size) {
 			let nearestPoint;
 
@@ -260,6 +258,8 @@ export default class Cursor {
 			this._addRuler(offset);
 			this._addLabel(offset, nearestPoint, foundPointsByGraph);
 		}
+
+		this._touchRadiusX = NaN;
 	}
 
 	/**

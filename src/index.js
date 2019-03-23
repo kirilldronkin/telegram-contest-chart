@@ -191,12 +191,7 @@ function selectGraphSet(set) {
 		const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
 
 		checkbox.setUpdateListener(() => {
-			let shouldUpdateZoomRange = false;
 			if (checkbox.isChecked()) {
-				if (!overviewChart.getGraphs().length) {
-					shouldUpdateZoomRange = true;
-				}
-
 				zoomChart.addGraph(graph);
 				overviewChart.addGraph(graph);
 			} else {
@@ -206,13 +201,11 @@ function selectGraphSet(set) {
 
 			overviewChart.draw();
 
-			if (shouldUpdateZoomRange) {
-				const range = zoombar.getRange();
-				zoomChart.setRange(
-					overviewChart.getXByPixels(range.start),
-					overviewChart.getXByPixels(range.end)
-				);
-			}
+			const range = zoombar.getRange();
+			zoomChart.setRange(
+				overviewChart.getXByPixels(range.start),
+				overviewChart.getXByPixels(range.end)
+			);
 
 			zoomChart.draw();
 		});
