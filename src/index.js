@@ -12,6 +12,11 @@ import Checkbox from './ui/checkbox.js';
 const THEME_STORAGE_KEY = 'telegram-contest-chart_theme';
 
 /**
+ * @const {number}
+ */
+const ZOOMBAR_GRIP_SIZE = 15;
+
+/**
  * @enum {string}
  */
 const Theme = {
@@ -36,8 +41,8 @@ const overviewChart = new Chart(overviewChartCanvas, {
 	yTicksType: TicksType.NONE,
 	topPadding: 10,
 	bottomPadding: 10,
-	leftPadding: 10,
-	rightPadding: 10,
+	leftPadding: 15,
+	rightPadding: 15,
 	graphLineThickness: 2
 });
 
@@ -203,8 +208,7 @@ function selectGraphSet(set) {
 	zoomChart.resize();
 	zoomChart.draw();
 
-	// 10px - size of the grip, consider it
-	zoombar.setRange(10, zoombarContainer.offsetWidth - 10);
+	zoombar.setRange(ZOOMBAR_GRIP_SIZE, zoombarContainer.offsetWidth - ZOOMBAR_GRIP_SIZE);
 
 	Array.from(selectContainer.childNodes)
 		.forEach((child, index) => {

@@ -64,8 +64,8 @@ export default class Label {
 	_setupDOM() {
 		this._container.classList.add('label');
 
-		this._titleElement = createDiv('label__titleElement');
-		this._itemsContainer = createDiv('label__itemsContainer');
+		this._titleElement = createDiv('label__title');
+		this._itemsContainer = createDiv('label__items');
 
 		this._container.appendChild(this._titleElement);
 		this._container.appendChild(this._itemsContainer);

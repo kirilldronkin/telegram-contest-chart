@@ -31,12 +31,12 @@ closureCompiler.run((exitCode, stdOut, stdError) => {
 	}
 });
 
-const postcssProcessor = postcss([autoprefixer, cssnano]);
+const postcssProcessor = postcss([autoprefixer, cssnano({preset: 'default'})]);
 
 const styles = fs.readdirSync(path.join(srcPath, 'styles'))
 	.map((file) => fs.readFileSync(path.join(srcPath, 'styles', file), 'utf-8'));
 
-Promise.all(styles.map((style) => postcssProcessor.process(style)))
+Promise.all(styles.map((style) => postcssProcessor.process(style, {from: undefined})))
 	.then((results) => {
 		const bundledStyles = results.map((result) => result.css).join('');
 

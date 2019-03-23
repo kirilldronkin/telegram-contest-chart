@@ -14,10 +14,10 @@ const LABEL_MARGIN = 10;
 export default class Cursor {
 	constructor() {
 		/**
-		 * @type {?HTMLCanvasElement}
+		 * @type {?HTMLElement}
 		 * @private
 		 */
-		this._canvas = null;
+		this._area = null;
 
 		/**
 		 * @type {?Chart}
@@ -66,24 +66,26 @@ export default class Cursor {
 	 * @param {Chart} chart
 	 */
 	observe(chart) {
-		if (this._canvas) {
-			this._canvas.removeEventListener('mousemove', this._onMouseMoveBinded);
-			this._canvas.removeEventListener('mouseleave', this._onMouseLeaveBinded);
+		if (this._area) {
+			this._area.removeEventListener('mousemove', this._onMouseMoveBinded);
+			this._area.removeEventListener('mouseleave', this._onMouseLeaveBinded);
 		}
 
-		this._canvas = chart.getCanvas();
-		this._canvas.addEventListener('mousemove', this._onMouseMoveBinded);
-		this._canvas.addEventListener('mouseleave', this._onMouseLeaveBinded);
+		this._area = /** @type {HTMLElement} */ (chart.getCanvas().parentElement);
+		this._area.addEventListener('mousemove', this._onMouseMoveBinded);
+		this._area.addEventListener('mouseleave', this._onMouseLeaveBinded);
 
 		this._chart = chart;
 	}
 
 	clear() {
-		if (this._markers.length) {
-			this._removeAllMarkers();
-			this._removeRuler();
-			this._removeLabel();
+		if (!this._markers.length) {
+			return;
 		}
+
+		this._removeAllMarkers();
+		this._removeRuler();
+		this._removeLabel()
 	}
 
 	/**
@@ -98,7 +100,7 @@ export default class Cursor {
 		marker.style.left = `${this._chart.getPixelsByX(point.x)}px`;
 		marker.style.top = `${this._chart.getPixelsByY(point.y)}px`;
 
-		this._canvas.appendChild(marker);
+		this._area.appendChild(marker);
 		this._markers.push(marker);
 	}
 
@@ -107,7 +109,7 @@ export default class Cursor {
 	 */
 	_removeAllMarkers() {
 		this._markers.forEach((marker) => {
-			this._canvas.removeChild(marker);
+			this._area.removeChild(marker);
 		});
 		this._markers.length = 0;
 	}
@@ -122,17 +124,17 @@ export default class Cursor {
 
 		this._ruler.style.left = `${offset}px`;
 		this._ruler.style.top = `${chartTopPadding}px`;
-		this._ruler.style.height = `${this._canvas.offsetHeight - chartTopPadding - chartBottomPadding}px`;
+		this._ruler.style.height = `${this._area.offsetHeight - chartTopPadding - chartBottomPadding}px`;
 
-		this._canvas.appendChild(this._ruler);
+		this._area.appendChild(this._ruler);
 	}
 
 	/**
 	 * @private
 	 */
 	_removeRuler() {
-		if (this._canvas.contains(this._ruler)) {
-			this._canvas.removeChild(this._ruler);
+		if (this._area.contains(this._ruler)) {
+			this._area.removeChild(this._ruler);
 		}
 	}
 
@@ -167,9 +169,9 @@ export default class Cursor {
 		this._label.setTitle(title);
 		this._label.setItems(items);
 
-		this._canvas.appendChild(this._labelContainer);
+		this._area.appendChild(this._labelContainer);
 
-		const areaSize = this._canvas.offsetWidth;
+		const areaSize = this._area.offsetWidth;
 		const labelSize = this._labelContainer.offsetWidth;
 
 		let position;
@@ -188,8 +190,8 @@ export default class Cursor {
 	 * @private
 	 */
 	_removeLabel() {
-		if (this._canvas.contains(this._labelContainer)) {
-			this._canvas.removeChild(this._labelContainer);
+		if (this._area.contains(this._labelContainer)) {
+			this._area.removeChild(this._labelContainer);
 		}
 	}
 
@@ -200,13 +202,13 @@ export default class Cursor {
 	_onMouseMove(event) {
 		event = /** @type {MouseEvent} */ (event);
 
-		const areaBCR = this._canvas.getBoundingClientRect();
-
-		const areaY = event.clientY - areaBCR.top;
-		const chartY = this._chart.getYByPixels(areaY);
-
+		const areaBCR = this._area.getBoundingClientRect();
 		const areaX = event.clientX - areaBCR.left;
+		const areaY = event.clientY - areaBCR.top;
+
 		const lineThickness = this._chart.getGraphLineThickness();
+
+		const chartY = this._chart.getYByPixels(areaY);
 		const minChartX = this._chart.getXByPixels(areaX - lineThickness);
 		const maxChartX = this._chart.getXByPixels(areaX + lineThickness);
 

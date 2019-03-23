@@ -913,21 +913,23 @@ export default class Chart {
 		}
 
 		this._yTicks = Array.from(new Set([...oldYTicks, ...newYTicks].sort((a, b) => a - b)));
-		this._yTicks.forEach((tick) => {
+
+		const initialYTicksAlphas = new Map(this._yTicks.map((tick) => {
+			let alpha;
 			if (this._yTicksAlphas.has(tick)) {
-				return;
+				alpha = this._yTicksAlphas.get(tick);
+			} else {
+				if (newYTicks.includes(tick)) {
+					alpha = 0;
+				}
+
+				if (oldYTicks.includes(tick)) {
+					alpha = 1;
+				}
 			}
 
-			if (newYTicks.includes(tick)) {
-				this._yTicksAlphas.set(tick, 0);
-			}
-
-			if (oldYTicks.includes(tick)) {
-				this._yTicksAlphas.set(tick, 1);
-			}
-		});
-
-		const initialYTicksAlphas = new Map(this._yTicksAlphas);
+			return [tick, alpha];
+		}));
 
 		const transitionIntervals = [
 			{from: currentTransitionValues ? currentTransitionValues[0] : oldMinYTick, to: newMinYTick},
