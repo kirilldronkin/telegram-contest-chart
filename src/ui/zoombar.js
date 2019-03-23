@@ -144,9 +144,9 @@ export default class Zoombar {
 	 * @private
 	 */
 	_listenDOMEvents() {
-		listenHorizontalDragEvent(this._container, this._leftGrip, this._onLeftGripDragged.bind(this));
-		listenHorizontalDragEvent(this._container, this._rightGrip, this._onRightGripDragged.bind(this));
-		listenHorizontalDragEvent(
+		listenHorizontalDrag(this._container, this._leftGrip, this._onLeftGripDragged.bind(this));
+		listenHorizontalDrag(this._container, this._rightGrip, this._onRightGripDragged.bind(this));
+		listenHorizontalDrag(
 			this._container,
 			this._pan,
 			this._onPanDragged.bind(this),
@@ -318,7 +318,7 @@ function getEventX(event, target) {
  * @param {function()} onStarted
  * @param {function()} onEnded
  */
-function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
+function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
 	let containerBCR;
 	let elementBCR;
 	let mouseOffset;
@@ -364,7 +364,7 @@ function listenHorizontalDragEvent(container, element, onMoved = noop, onStarted
 		const eventX = getEventX(event, element);
 		const newPosition = eventX - containerBCR.left;
 
-		if (newPosition > mouseOffset && newPosition + elementBCR.width - mouseOffset < containerBCR.width) {
+		if (newPosition >= mouseOffset && newPosition + elementBCR.width - mouseOffset <= containerBCR.width) {
 			const diff = newPosition - lastPosition;
 			if (diff) {
 				onMoved(round(diff));
