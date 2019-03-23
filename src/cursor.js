@@ -220,7 +220,7 @@ export default class Cursor {
 				point.x >= minChartX && point.x <= maxChartX
 			);
 
-			if (point && !point.interpolated) {
+			if (point && !point.isInterpolated) {
 				foundPointsByGraph.set(graph, point);
 			}
 		});

@@ -17,6 +17,11 @@ const THEME_STORAGE_KEY = 'telegram-contest-chart_theme';
 const ZOOMBAR_GRIP_SIZE = 15;
 
 /**
+ * @const {string}
+ */
+const MOBILE_MEDIA_QUERY = 'only screen and (max-width: 480px) and (orientation: portrait)';
+
+/**
  * @enum {string}
  */
 const Theme = {
@@ -65,13 +70,14 @@ window.addEventListener('load', () => {
 		.then((response) => response.json())
 		.then((json) => {
 			json.forEach((data) => {
-				const xs = data['columns'][0].slice(1);
-				const set = data['columns'].slice(1).map((values) =>
+				const xs = data['columns'].find((values) => values[0] === 'x').slice(1);
+				const ys = data['columns'].filter((values) => values[0].startsWith('y'));
+
+				const set = ys.map(([name, ...values]) =>
 					new Graph(
-						data['names'][values[0]],
-						data['colors'][values[0]],
-						values.slice(1).map((value, index) => new Point(xs[index], value))
-					)
+						data['names'][name],
+						data['colors'][name],
+						values.map((value, index) => new Point(xs[index], value)))
 				);
 
 				graphSets.push(set);
@@ -86,9 +92,11 @@ window.addEventListener('load', () => {
 				selectTheme(currentTheme === Theme.DAY ? Theme.NIGHT : Theme.DAY);
 			});
 
-			const resizeAsap = () => setTimeout(resize, 0);
-			window.addEventListener('resize', resizeAsap);
-			window.addEventListener('orientationchange', resizeAsap);
+			const mobileMedia = window.matchMedia(MOBILE_MEDIA_QUERY);
+
+			mobileMedia.addListener(resize);
+			window.addEventListener('resize', resize);
+			window.addEventListener('orientationchange', resize);
 
 			graphSets.forEach((set) => {
 				const container = createDiv('select__chart');

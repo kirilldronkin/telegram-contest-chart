@@ -321,7 +321,7 @@ function getEventX(event, target) {
 function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
 	let containerBCR;
 	let elementBCR;
-	let mouseOffset;
+	let offset;
 	let lastPosition;
 	let clicksInactivityTimeoutId;
 
@@ -335,7 +335,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 
 		containerBCR = container.getBoundingClientRect();
 		elementBCR = element.getBoundingClientRect();
-		mouseOffset = eventX - elementBCR.left;
+		offset = eventX - elementBCR.left;
 		lastPosition = eventX - containerBCR.left;
 
 		container.addEventListener('mousemove', onMove);
@@ -364,7 +364,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 		const eventX = getEventX(event, element);
 		const newPosition = eventX - containerBCR.left;
 
-		if (newPosition >= mouseOffset && newPosition + elementBCR.width - mouseOffset <= containerBCR.width) {
+		if (newPosition >= offset && newPosition + elementBCR.width - offset <= containerBCR.width) {
 			const diff = newPosition - lastPosition;
 			if (diff) {
 				onMoved(round(diff));
@@ -394,7 +394,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 
 		containerBCR = undefined;
 		elementBCR = undefined;
-		mouseOffset = undefined;
+		offset = undefined;
 		lastPosition = undefined;
 
 		onEnded();

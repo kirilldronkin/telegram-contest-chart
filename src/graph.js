@@ -75,7 +75,7 @@ export default class Graph {
 		if (startPoint.x !== startX) {
 			const pointBeforeStart = this.points[startPointIndex - 1];
 			if (pointBeforeStart) {
-				rangePoints.unshift(interpolate(startX, pointBeforeStart, startPoint));
+				rangePoints.unshift(pointBeforeStart.interpolate(startX, startPoint));
 			}
 		}
 
@@ -83,26 +83,12 @@ export default class Graph {
 		if (endPoint.x !== endX) {
 			const pointAfterEnd = this.points[endPointIndex + 1];
 			if (pointAfterEnd) {
-				rangePoints.push(interpolate(endX, endPoint, pointAfterEnd));
+				rangePoints.push(endPoint.interpolate(endX, pointAfterEnd));
 			}
 		}
 
 		return rangePoints;
 	}
-}
-
-/**
- * @param {number} x
- * @param {Point} point1
- * @param {Point} point2
- * @return {Point}
- */
-function interpolate(x, point1, point2) {
-	const y = point1.y + (x - point1.x) * ((point2.y - point1.y) / (point2.x - point1.x));
-
-	return new Point(x, y, {
-		interpolated: true
-	});
 }
 
 /**

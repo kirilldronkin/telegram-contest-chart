@@ -12,7 +12,7 @@ import {
 	hexToRGB
 } from './utils.js';
 
-const {ceil, floor, round} = Math;
+const {ceil, floor} = Math;
 
 /**
  * @const {number}
@@ -767,7 +767,7 @@ export default class Chart {
 				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * point.y;
 
 				// Decimate redundant points
-				if (!lastDrawnXPixels || round(lastDrawnXPixels) !== round(xPixels)) {
+				if (!lastDrawnXPixels || floor(lastDrawnXPixels) !== floor(xPixels)) {
 					if (index === 0) {
 						this._context.moveTo(xPixels, yPixels);
 					} else {
