@@ -34,6 +34,7 @@ const zoomChart = new Chart(zoomChartCanvas, {
 	xTicksType: TicksType.DATE,
 	yTicksType: TicksType.COMPACT,
 	yTicksScale: TicksScale.NICE,
+	yTicksBackground: true,
 	topPadding: 30,
 	bottomPadding: 40,
 	graphLineThickness: 3,
@@ -156,6 +157,11 @@ function selectTheme(theme) {
 	zoomChart.setTickTextColor({
 		[Theme.DAY]: '#ced4d7',
 		[Theme.NIGHT]: '#4e5e6f'
+	}[theme]);
+
+	zoomChart.setTickBackgroundColor({
+		[Theme.DAY]: '#fff',
+		[Theme.NIGHT]: '#252f3f'
 	}[theme]);
 
 	zoomChart.draw();

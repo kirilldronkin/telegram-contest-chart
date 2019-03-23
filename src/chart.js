@@ -12,7 +12,7 @@ import {
 	hexToRGB
 } from './utils.js';
 
-const {ceil, floor} = Math;
+const {ceil, floor, min} = Math;
 
 /**
  * @const {number}
@@ -70,8 +70,10 @@ export default class Chart {
 	 * @param {HTMLCanvasElement} canvas
 	 * @param {{
 	 *     xTicksType: (TicksType|undefined),
+	 *     xTicksBackground: (boolean|undefined),
 	 *     yTicksType: (TicksType|undefined),
 	 *     yTicksScale: (TicksScale|undefined),
+	 *     yTicksBackground: (boolean|undefined),
 	 *     topPadding: (number|undefined),
 	 *     bottomPadding: (number|undefined),
 	 *     leftPadding: (number|undefined),
@@ -80,13 +82,16 @@ export default class Chart {
 	 *     ticksCount: (number|undefined),
 	 *     tickLineThickness: (number|undefined),
 	 *     tickLineColor: (string|undefined),
-	 *     tickTextColor: (string|undefined)
+	 *     tickTextColor: (string|undefined),
+	 *     tickBackgroundColor: (string|undefined)
 	 * }=} opt
 	 */
 	constructor(canvas, {
 		xTicksType = TicksType.DECIMAL,
+		xTicksBackground = false,
 		yTicksType = TicksType.DECIMAL,
 		yTicksScale = TicksScale.EXTREMUM,
+		yTicksBackground = false,
 		topPadding = 0,
 		bottomPadding = 0,
 		leftPadding = 0,
@@ -95,7 +100,8 @@ export default class Chart {
 		ticksCount = 10,
 		tickLineThickness = 1,
 		tickLineColor = '#000',
-		tickTextColor = '#000'
+		tickTextColor = '#000',
+		tickBackgroundColor = '#000'
 	} = {}) {
 		/**
 		 * @type {HTMLCanvasElement}
@@ -164,6 +170,12 @@ export default class Chart {
 		this._tickTextColor = tickTextColor;
 
 		/**
+		 * @type {string}
+		 * @private
+		 */
+		this._tickBackgroundColor = tickBackgroundColor;
+
+		/**
 		 * @type {Array<Graph>}
 		 * @private
 		 */
@@ -200,6 +212,12 @@ export default class Chart {
 		this._xTicksType = xTicksType;
 
 		/**
+		 * @type {boolean}
+		 * @private
+		 */
+		this._xTicksBackround = xTicksBackground;
+
+		/**
 		 * @type {Array<number>}
 		 * @private
 		 */
@@ -216,6 +234,12 @@ export default class Chart {
 		 * @private
 		 */
 		this._yTicksScale = yTicksScale;
+
+		/**
+		 * @type {boolean}
+		 * @private
+		 */
+		this._yTicksBackround = yTicksBackground;
 
 		/**
 		 * @type {Map<number, number>}
@@ -341,20 +365,20 @@ export default class Chart {
 			this._graphsRanges.set(graph, range);
 		}
 
-		const min = graph.getMin();
-		if (isNaN(this._minX) || min.x < this._minX) {
-			this._minX = min.x;
+		const {x: minX, y: minY} = graph.getMin();
+		if (isNaN(this._minX) || minX < this._minX) {
+			this._minX = minX;
 		}
-		if (isNaN(this._minY) || min.y < this._minY) {
-			this._minY = min.y;
+		if (isNaN(this._minY) || minY < this._minY) {
+			this._minY = minY;
 		}
 
-		const max = graph.getMax();
-		if (isNaN(this._maxX) || max.x > this._maxX) {
-			this._maxX = max.x;
+		const {x: maxX, y: maxY} = graph.getMax();
+		if (isNaN(this._maxX) || maxX > this._maxX) {
+			this._maxX = maxX;
 		}
-		if (isNaN(this._maxY) || max.y > this._maxY) {
-			this._maxY = max.y;
+		if (isNaN(this._maxY) || maxY > this._maxY) {
+			this._maxY = maxY;
 		}
 
 		const minRangeY = findMin(this._graphsRanges.get(graph), (point) => point.y);
@@ -407,8 +431,8 @@ export default class Chart {
 		const otherGraphs = this._graphs.filter((someGraph) => someGraph !== graph);
 		const otherRanges = otherGraphs.map((graph) => this._graphsRanges.get(graph));
 
-		const min = graph.getMin();
-		if (min.x === this._minX || min.y === this._minY) {
+		const {x: minX, y: minY} = graph.getMin();
+		if (minX === this._minX || minY === this._minY) {
 			const otherMins = otherGraphs.map((graph) => graph.getMin());
 
 			const newMinX = findMin(otherMins, (({x}) => x));
@@ -422,8 +446,8 @@ export default class Chart {
 			}
 		}
 
-		const max = graph.getMax();
-		if (max.x === this._maxX || max.y === this._maxY) {
+		const {x: maxX, y: maxY} = graph.getMax();
+		if (maxX === this._maxX || maxY === this._maxY) {
 			const otherMaxes = otherGraphs.map((graph) => graph.getMax());
 
 			const newMaxX = findMax(otherMaxes, (({x}) => x));
@@ -634,6 +658,13 @@ export default class Chart {
 	}
 
 	/**
+	 * @param {string} color
+	 */
+	setTickBackgroundColor(color) {
+		this._tickBackgroundColor = color;
+	}
+
+	/**
 	 * @return {{start: number, end: number}}
 	 */
 	getRange() {
@@ -742,8 +773,33 @@ export default class Chart {
 	 */
 	_draw() {
 		this._prepareCanvas();
-		this._drawTicks();
+
+		this._drawGrid();
 		this._drawGraphs();
+		this._drawTicks();
+	}
+
+	/**
+	 * @private
+	 */
+	_drawGrid() {
+		this._context.lineWidth = this._tickLineThickness;
+
+		if (this._yTicksType !== TicksType.NONE) {
+			const xPixels = this._pixelsPerX * this._minXTick;
+
+			this._yTicks.forEach((tick) => {
+				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * tick;
+				const alpha = this._yTicksAlphas.has(tick) ? this._yTicksAlphas.get(tick) : 1;
+
+				this._context.strokeStyle = alpha === 1 ? this._tickLineColor : hexToRGB(this._tickLineColor, alpha);
+
+				this._context.beginPath();
+				this._context.moveTo(xPixels, yPixels);
+				this._context.lineTo(xPixels + this._width, yPixels);
+				this._context.stroke();
+			});
+		}
 	}
 
 	/**
@@ -788,7 +844,6 @@ export default class Chart {
 	 */
 	_drawTicks() {
 		this._context.font = TICK_FONT;
-		this._context.lineWidth = this._tickLineThickness;
 
 		if (this._xTicksType !== TicksType.NONE) {
 			const yPixels = this._height - this._pixelsPerY * this._minYTick - TICK_TEXT_BOTTOM_MARGIN;
@@ -797,11 +852,9 @@ export default class Chart {
 			const isStartReached = this._xTicks[0] === this._minX;
 			const isEndReached = this._xTicks[this._xTicks.length - 1] === this._maxX;
 
-			this._context.fillStyle = this._tickTextColor;
-			this._context.strokeStyle = this._tickLineColor;
-
 			this._xTicks.forEach((tick) => {
 				const xPixels = this._pixelsPerX * tick;
+				const text = this.formatValue(tick, Axis.X);
 
 				if (isStartReached) {
 					this._context.textAlign = 'start';
@@ -811,7 +864,16 @@ export default class Chart {
 					this._context.textAlign = 'center';
 				}
 
-				this._context.fillText(this.formatValue(tick, Axis.X), xPixels, yPixels, maxTextWidth);
+				if (this._xTicksBackround) {
+					const textBackground = createTextBackgroundStub(text);
+					const measuredTextWith = this._context.measureText(text).width;
+
+					this._context.fillStyle = this._tickBackgroundColor;
+					this._context.fillText(textBackground, xPixels, yPixels, min(measuredTextWith, maxTextWidth));
+				}
+
+				this._context.fillStyle = this._tickTextColor;
+				this._context.fillText(text, xPixels, yPixels, maxTextWidth);
 			});
 		}
 
@@ -819,20 +881,23 @@ export default class Chart {
 			const xPixels = this._pixelsPerX * this._minXTick;
 
 			this._yTicks.forEach((tick) => {
-				const lineYPixels = this._height - this._bottomPadding - this._pixelsPerY * tick;
-				const textYPixels = lineYPixels - TICK_TEXT_BOTTOM_MARGIN;
+				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * tick - TICK_TEXT_BOTTOM_MARGIN;
+
+				const text = this.formatValue(tick, Axis.Y);
 				const alpha = this._yTicksAlphas.has(tick) ? this._yTicksAlphas.get(tick) : 1;
 
-				this._context.fillStyle = alpha === 1 ? this._tickTextColor : hexToRGB(this._tickTextColor, alpha);
-				this._context.strokeStyle = alpha === 1 ? this._tickLineColor : hexToRGB(this._tickLineColor, alpha);
-
-				this._context.beginPath();
-				this._context.moveTo(xPixels, lineYPixels);
-				this._context.lineTo(xPixels + this._width, lineYPixels);
-				this._context.stroke();
-
 				this._context.textAlign = 'start';
-				this._context.fillText(this.formatValue(tick, Axis.Y), xPixels, textYPixels);
+
+				if (this._yTicksBackround) {
+					const textBackground = createTextBackgroundStub(text);
+					const measuredTextWith = this._context.measureText(text).width;
+
+					this._context.fillStyle = alpha === 1 ? this._tickBackgroundColor : hexToRGB(this._tickBackgroundColor, alpha);
+					this._context.fillText(textBackground, xPixels, yPixels, measuredTextWith);
+				}
+
+				this._context.fillStyle = alpha === 1 ? this._tickTextColor : hexToRGB(this._tickTextColor, alpha);
+				this._context.fillText(text, xPixels, yPixels);
 			});
 		}
 	}
@@ -913,23 +978,21 @@ export default class Chart {
 		}
 
 		this._yTicks = Array.from(new Set([...oldYTicks, ...newYTicks].sort((a, b) => a - b)));
-
-		const initialYTicksAlphas = new Map(this._yTicks.map((tick) => {
-			let alpha;
+		this._yTicks.forEach((tick) => {
 			if (this._yTicksAlphas.has(tick)) {
-				alpha = this._yTicksAlphas.get(tick);
-			} else {
-				if (newYTicks.includes(tick)) {
-					alpha = 0;
-				}
-
-				if (oldYTicks.includes(tick)) {
-					alpha = 1;
-				}
+				return;
 			}
 
-			return [tick, alpha];
-		}));
+			if (newYTicks.includes(tick)) {
+				this._yTicksAlphas.set(tick, 0);
+			}
+
+			if (oldYTicks.includes(tick)) {
+				this._yTicksAlphas.set(tick, 1);
+			}
+		});
+
+		const initialYTicksAlphas = new Map(this._yTicksAlphas);
 
 		const transitionIntervals = [
 			{from: currentTransitionValues ? currentTransitionValues[0] : oldMinYTick, to: newMinYTick},
@@ -981,4 +1044,12 @@ export default class Chart {
 			onTransitionUpdate
 		);
 	}
+}
+
+/**
+ * @param {string} text
+ * @return {string}
+ */
+function createTextBackgroundStub(text) {
+	return Array(text.length).fill('█').join('')
 }

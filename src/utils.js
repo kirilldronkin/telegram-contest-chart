@@ -201,7 +201,7 @@ function formatDate(date, spacing) {
 		return `${date.getMinutes()}:${String(date.getSeconds()).padStart(2, '0')}`;
 	}
 
-	return String(Date);
+	return date.toString();
 }
 
 export {

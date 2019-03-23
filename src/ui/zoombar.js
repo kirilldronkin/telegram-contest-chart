@@ -261,14 +261,14 @@ export default class Zoombar {
 	_onLeftOverlayClicked(event) {
 		event = /** @type {MouseEvent} */ (event);
 
-		const leftOverlayBCR = this._leftOverlay.getBoundingClientRect();
+		const leftOverlayRect = this._leftOverlay.getBoundingClientRect();
 
-		let newPanStart = event.clientX - leftOverlayBCR.left - this._leftGripSize;
+		let newPanStart = event.clientX - leftOverlayRect.left - this._leftGripSize;
 		newPanStart -= this._panSize / 2;
 		newPanStart = max(newPanStart, 0);
 
 		this._renderLeftOverlaySize(newPanStart);
-		this._renderRightOverlaySize(this._rightOverlaySize + leftOverlayBCR.width - newPanStart);
+		this._renderRightOverlaySize(this._rightOverlaySize + leftOverlayRect.width - newPanStart);
 
 		this._updateListener();
 	}
@@ -280,14 +280,14 @@ export default class Zoombar {
 	_onRightOverlayClicked(event) {
 		event = /** @type {MouseEvent} */ (event);
 
-		const rightOverlayBCR = this._rightOverlay.getBoundingClientRect();
+		const rightOverlayRect = this._rightOverlay.getBoundingClientRect();
 
-		let newPanEnd = rightOverlayBCR.right - event.clientX - this._rightGripSize;
+		let newPanEnd = rightOverlayRect.right - event.clientX - this._rightGripSize;
 		newPanEnd -= this._panSize / 2;
 		newPanEnd = max(newPanEnd, 0);
 
 		this._renderRightOverlaySize(newPanEnd);
-		this._renderLeftOverlaySize(this._leftOverlaySize + rightOverlayBCR.width - newPanEnd);
+		this._renderLeftOverlaySize(this._leftOverlaySize + rightOverlayRect.width - newPanEnd);
 
 		this._updateListener();
 	}
@@ -319,8 +319,8 @@ function getEventX(event, target) {
  * @param {function()} onEnded
  */
 function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = noop, onEnded = noop) {
-	let containerBCR;
-	let elementBCR;
+	let containerRect;
+	let elementRect;
 	let offset;
 	let lastPosition;
 	let clicksInactivityTimeoutId;
@@ -333,10 +333,10 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 
 		const eventX = getEventX(event, element);
 
-		containerBCR = container.getBoundingClientRect();
-		elementBCR = element.getBoundingClientRect();
-		offset = eventX - elementBCR.left;
-		lastPosition = eventX - containerBCR.left;
+		containerRect = container.getBoundingClientRect();
+		elementRect = element.getBoundingClientRect();
+		offset = eventX - elementRect.left;
+		lastPosition = eventX - containerRect.left;
 
 		container.addEventListener('mousemove', onMove);
 		container.addEventListener('touchmove', onMove);
@@ -362,9 +362,9 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 		event = /** @type {MouseEvent|TouchEvent} */ (event);
 
 		const eventX = getEventX(event, element);
-		const newPosition = eventX - containerBCR.left;
+		const newPosition = eventX - containerRect.left;
 
-		if (newPosition >= offset && newPosition + elementBCR.width - offset <= containerBCR.width) {
+		if (newPosition >= offset && newPosition + elementRect.width - offset <= containerRect.width) {
 			const diff = newPosition - lastPosition;
 			if (diff) {
 				onMoved(round(diff));
@@ -392,8 +392,8 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 			container.removeEventListener('click', onClick, true);
 		}, CLICKS_INACTIVITY_TIME_AFTER_DRAG);
 
-		containerBCR = undefined;
-		elementBCR = undefined;
+		containerRect = undefined;
+		elementRect = undefined;
 		offset = undefined;
 		lastPosition = undefined;
 
