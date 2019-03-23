@@ -35,6 +35,11 @@ const TICK_FONT = '15px Arial, Helvetica, Verdana, sans-serif';
 const TICK_TEXT_BOTTOM_MARGIN = 10;
 
 /**
+ * @const {number}
+ */
+const TICK_LINE_THICKNESS = 1;
+
+/**
  * @enum {string}
  */
 export const Axis = {
@@ -75,7 +80,6 @@ export default class Chart {
 	 *     rightPadding: (number|undefined),
 	 *     graphLineThickness: (number|undefined),
 	 *     ticksCount: (number|undefined),
-	 *     tickLineThickness: (number|undefined),
 	 *     tickLineColor: (string|undefined),
 	 *     tickTextColor: (string|undefined),
 	 *     tickBackgroundColor: (string|undefined),
@@ -94,7 +98,6 @@ export default class Chart {
 		rightPadding = 0,
 		graphLineThickness = 1,
 		ticksCount = 10,
-		tickLineThickness = 1,
 		tickLineColor = '#000',
 		tickTextColor = '#000',
 		tickBackgroundColor = '#000',
@@ -147,12 +150,6 @@ export default class Chart {
 		 * @private
 		 */
 		this._ticksCount = ticksCount;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._tickLineThickness = 1;
 
 		/**
 		 * @type {string}
@@ -790,7 +787,7 @@ export default class Chart {
 	 * @private
 	 */
 	_drawGrid() {
-		this._context.lineWidth = this._tickLineThickness;
+		this._context.lineWidth = TICK_LINE_THICKNESS;
 
 		if (this._yTicksType !== TicksType.NONE) {
 			const xPixels = this._pixelsPerX * this._minXTick;
