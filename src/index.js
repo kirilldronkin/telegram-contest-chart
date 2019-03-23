@@ -161,7 +161,7 @@ function selectTheme(theme) {
 	}[theme]);
 
 	zoomChart.setTickBackgroundColor({
-		[Theme.DAY]: '#fff',
+		[Theme.DAY]: '#ffffff',
 		[Theme.NIGHT]: '#252f3f'
 	}[theme]);
 

@@ -799,7 +799,7 @@ export default class Chart {
 				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * tick;
 				const alpha = this._yTicksAlphas.has(tick) ? this._yTicksAlphas.get(tick) : 1;
 
-				this._context.strokeStyle = alpha === 1 ? this._tickLineColor : hexToRGB(this._tickLineColor, alpha);
+				this._context.strokeStyle = hexToRGB(this._tickLineColor, alpha);
 
 				this._context.beginPath();
 				this._context.moveTo(xPixels, yPixels);
@@ -841,7 +841,7 @@ export default class Chart {
 				}
 			});
 
-			this._context.strokeStyle = alpha === 1 ? graph.color : hexToRGB(graph.color, alpha);
+			this._context.strokeStyle = hexToRGB(graph.color, alpha);
 			this._context.stroke();
 		});
 	}
@@ -899,11 +899,11 @@ export default class Chart {
 					const textBackground = createTextBackgroundStub(text);
 					const measuredTextWith = this._context.measureText(text).width;
 
-					this._context.fillStyle = alpha === 1 ? this._tickBackgroundColor : hexToRGB(this._tickBackgroundColor, alpha);
+					this._context.fillStyle = hexToRGB(this._tickBackgroundColor, alpha);
 					this._context.fillText(textBackground, xPixels, yPixels, measuredTextWith);
 				}
 
-				this._context.fillStyle = alpha === 1 ? this._tickTextColor : hexToRGB(this._tickTextColor, alpha);
+				this._context.fillStyle = hexToRGB(this._tickTextColor, alpha);
 				this._context.fillText(text, xPixels, yPixels);
 			});
 		}
