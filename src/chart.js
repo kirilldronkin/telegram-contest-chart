@@ -979,16 +979,12 @@ export default class Chart {
 		} else {
 			const ticksCount = (maxX - minX) / spacing;
 
-			if (ticksCount > this._ticksCount) {
-				spacing *= 2;
-			}
-
-			if (ticksCount < this._ticksCount - 2) {
-				spacing /= 2;
-			}
-
-			if (isNaN(ticksCount)) {
+			if (!ticksCount) {
 				spacing = NaN;
+			} else if (ticksCount > this._ticksCount) {
+				spacing *= 2;
+			} else if (ticksCount < this._ticksCount - 2) {
+				spacing /= 2;
 			}
 		}
 
