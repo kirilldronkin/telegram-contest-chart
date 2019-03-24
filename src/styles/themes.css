@@ -4,7 +4,8 @@ body._day {
 	background: #fff;
 }
 
-body._day #title {
+body._day #title,
+body._day #repo-link {
 	color: #101010;
 }
 
@@ -60,7 +61,8 @@ body._night {
 	background: #232f3d;
 }
 
-body._night #title {
+body._night #title,
+body._night #repo-link {
 	color: #fff;
 }
 

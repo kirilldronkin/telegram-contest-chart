@@ -24,6 +24,10 @@
 		<div id="legend"></div>
 		<div id="theme-switch-button"></div>
 
+		<a id="repo-link" href="https://github.com/kirilldronkin/telegram-contest-chart" target="_blank">
+			https://github.com/kirilldronkin/telegram-contest-chart
+		</a>
+
 		%SCRIPTS%
 	</body>
 </html>
