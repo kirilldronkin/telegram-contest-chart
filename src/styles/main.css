@@ -43,6 +43,15 @@ body {
 	margin-top: 40px;
 }
 
+#repo-link {
+	margin-top: 50px;
+	font-size: 12px;
+	position: absolute;
+	left: 0;
+	right: 0;
+	text-align: center;
+}
+
 .select__chart {
 	position: relative;
 	display: inline-block;
