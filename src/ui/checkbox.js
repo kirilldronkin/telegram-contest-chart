@@ -83,6 +83,8 @@ export default class Checkbox {
 	_listenDOMEvents() {
 		this._iconElement.addEventListener('click', () => {
 			this._checked = !this._checked;
+
+			this._container.classList.add('_animated');
 			this._renderCheckedState();
 
 			this._updateListener();

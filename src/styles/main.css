@@ -130,21 +130,47 @@ body {
 	opacity: 0;
 }
 
-.checkbox._checked .checkbox__icon {
+.checkbox._checked:not(._animated) .checkbox__icon {
+	border-width: 15px;
+}
+
+.checkbox._checked._animated .checkbox__icon {
 	border-width: 2px;
 	animation: checkbox-icon-expand .3s ease-in-out forwards;
 }
 
-.checkbox._checked .checkbox__mark {
-	animation: checkbox-mark-check .3s ease-in-out .4s forwards;
+.checkbox._checked:not(._animated) .checkbox__mark {
+	height: 12px;
+	width: 5px;
+	opacity: 1;
 }
 
-.checkbox._unchecked .checkbox__icon {
+.checkbox._checked._animated .checkbox__mark {
+	height: 0;
+	width: 0;
+	opacity: 0;
+	animation: checkbox-mark-check .3s ease-in-out .3s forwards;
+}
+
+.checkbox._unchecked:not(._animated) .checkbox__icon {
+	border-width: 2px;
+}
+
+.checkbox._unchecked._animated .checkbox__icon {
 	border-width: 15px;
-	animation: checkbox-icon-collapse .3s ease-in-out .4s forwards;
+	animation: checkbox-icon-collapse .3s ease-in-out .3s forwards;
 }
 
-.checkbox._unchecked .checkbox__mark {
+.checkbox._unchecked:not(._animated) .checkbox__mark {
+	height: 0;
+	width: 0;
+	opacity: 0;
+}
+
+.checkbox._unchecked._animated .checkbox__mark {
+	height: 12px;
+	width: 5px;
+	opacity: 1;
 	animation: checkbox-mark-uncheck .3s ease-in-out forwards;
 }
 
