@@ -224,6 +224,18 @@ export default class Chart {
 		this._xTicksBackround = xTicksBackground;
 
 		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._xTicksSpacing = NaN;
+
+		/**
+		 * @type {Map<number, number>}
+		 * @private
+		 */
+		this._xTicksAlphas = new Map();
+
+		/**
 		 * @type {Array<number>}
 		 * @private
 		 */
@@ -287,49 +299,13 @@ export default class Chart {
 		 * @type {number}
 		 * @private
 		 */
-		this._maxX = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxXTick = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
 		this._minX = NaN;
 
 		/**
 		 * @type {number}
 		 * @private
 		 */
-		this._minXTick = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxY = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxYTick = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
 		this._minY = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._minYTick = NaN;
 
 		/**
 		 * @type {number}
@@ -347,6 +323,30 @@ export default class Chart {
 		 * @type {number}
 		 * @private
 		 */
+		this._minScaleX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._minScaleY = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._maxX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._maxY = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
 		this._maxRangeX = NaN;
 
 		/**
@@ -354,6 +354,18 @@ export default class Chart {
 		 * @private
 		 */
 		this._maxRangeY = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._maxScaleX = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._maxScaleY = NaN;
 	}
 
 	/**
@@ -543,11 +555,9 @@ export default class Chart {
 
 	clear() {
 		this._stopAllTransitions();
-		this._clearGraphs();
 
-		this._xTicks.length = 0;
-		this._yTicks.length = 0;
-		this._yTicksAlphas.clear();
+		this._clearGraphs();
+		this._clearTicks();
 
 		this._width = NaN;
 		this._height = NaN;
@@ -555,23 +565,19 @@ export default class Chart {
 		this._pixelsPerX = NaN;
 		this._pixelsPerY = NaN;
 
-		this._maxX = NaN;
-		this._maxXTick = NaN;
-
 		this._minX = NaN;
-		this._minXTick = NaN;
-
-		this._maxY = NaN;
-		this._maxYTick = NaN;
-
 		this._minY = NaN;
-		this._minYTick = NaN;
-
 		this._minRangeX = NaN;
 		this._minRangeY = NaN;
+		this._minScaleX = NaN;
+		this._minScaleY = NaN;
 
+		this._maxX = NaN;
+		this._maxY = NaN;
 		this._maxRangeX = NaN;
 		this._maxRangeY = NaN;
+		this._maxScaleX = NaN;
+		this._maxScaleY = NaN;
 	}
 
 	/**
@@ -622,9 +628,9 @@ export default class Chart {
 	 * @return {number}
 	 */
 	getXByPixels(pixels) {
-		let x = this._minXTick + ((pixels - this._leftPadding) / this._pixelsPerX);
+		let x = this._minScaleX + ((pixels - this._leftPadding) / this._pixelsPerX);
 
-		return clamp(x, this._minXTick, this._maxXTick);
+		return clamp(x, this._minScaleX, this._maxScaleX);
 	}
 
 	/**
@@ -632,9 +638,9 @@ export default class Chart {
 	 * @return {number}
 	 */
 	getYByPixels(pixels) {
-		let y = this._minYTick + ((this._height - this._bottomPadding - pixels) / this._pixelsPerY);
+		let y = this._minScaleY + ((this._height - this._bottomPadding - pixels) / this._pixelsPerY);
 
-		return clamp(y, this._minYTick, this._maxYTick);
+		return clamp(y, this._minScaleY, this._maxScaleY);
 	}
 
 	/**
@@ -642,7 +648,7 @@ export default class Chart {
 	 * @return {number}
 	 */
 	getPixelsByX(x) {
-		return this._leftPadding + this._pixelsPerX * (x - this._minXTick);
+		return this._leftPadding + this._pixelsPerX * (x - this._minScaleX);
 	}
 
 	/**
@@ -650,7 +656,7 @@ export default class Chart {
 	 * @return {number}
 	 */
 	getPixelsByY(y) {
-		return this._height - this._bottomPadding - this._pixelsPerY * (y - this._minYTick);
+		return this._height - this._bottomPadding - this._pixelsPerY * (y - this._minScaleY);
 	}
 
 	/**
@@ -658,6 +664,21 @@ export default class Chart {
 	 */
 	setGraphLineThickness(thickness) {
 		this._graphLineThickness = thickness;
+	}
+
+	/**
+	 * @param {number} count
+	 */
+	setTicksCount(count) {
+		this._ticksCount = count;
+
+		this._minScaleX = NaN;
+		this._minScaleY = NaN;
+
+		this._maxScaleX = NaN;
+		this._maxScaleY = NaN;
+
+		this._clearTicks();
 	}
 
 	/**
@@ -739,8 +760,7 @@ export default class Chart {
 
 		if (type === TicksType.DATE) {
 			const spacing = axis === Axis.X ?
-				(this._maxXTick - this._minXTick) / this._xTicks.length :
-				(this._maxYTick - this._minYTick) / this._yTicks.length;
+				this._xTicksSpacing : (this._maxScaleY - this._minScaleY) / this._yTicks.length;
 
 			return formatDate(new Date(value), spacing);
 		}
@@ -759,8 +779,8 @@ export default class Chart {
 		this._canvas.width = this._width;
 		this._canvas.height = this._height;
 
-		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxXTick - this._minXTick);
-		this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxYTick - this._minYTick);
+		this._calculatePixelsPerX();
+		this._calculatePixelsPerY();
 	}
 
 	draw() {
@@ -788,8 +808,8 @@ export default class Chart {
 		this._context.setTransform(1, 0, 0, 1, 0, 0);
 		this._context.clearRect(0, 0, this._width, this._height);
 
-		const translateX = this._pixelsPerX * this._minXTick;
-		const translateY = this._pixelsPerY * this._minYTick;
+		const translateX = this._pixelsPerX * this._minScaleX;
+		const translateY = this._pixelsPerY * this._minScaleY;
 
 		this._context.translate(translateX * -1, translateY);
 	}
@@ -816,7 +836,7 @@ export default class Chart {
 		this._context.lineWidth = TICK_LINE_THICKNESS;
 
 		if (this._yTicksType !== TicksType.NONE) {
-			const xPixels = this._pixelsPerX * this._minXTick;
+			const xPixels = this._pixelsPerX * this._minScaleX;
 
 			this._yTicks.forEach((tick) => {
 				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * tick;
@@ -876,15 +896,17 @@ export default class Chart {
 		this._context.font = TICK_FONT;
 
 		if (this._xTicksType !== TicksType.NONE) {
-			const yPixels = this._height - this._pixelsPerY * this._minYTick - TICK_TEXT_BOTTOM_MARGIN;
+			const yPixels = this._height - this._pixelsPerY * this._minScaleY - TICK_TEXT_BOTTOM_MARGIN;
 			const maxTextWidth = this._width / this._xTicks.length;
 
-			const isStartReached = this._xTicks[0] === this._minX;
-			const isEndReached = this._xTicks[this._xTicks.length - 1] === this._maxX;
+			const isStartReached = this._minScaleX === this._minX;
+			const isEndReached = this._maxScaleX === this._maxX;
 
 			this._xTicks.forEach((tick) => {
 				const xPixels = this._pixelsPerX * tick;
+
 				const text = this.formatValue(tick, Axis.X);
+				const alpha = this._xTicksAlphas.has(tick) ? this._xTicksAlphas.get(tick) : 1;
 
 				if (isStartReached) {
 					this._context.textAlign = 'start';
@@ -902,13 +924,13 @@ export default class Chart {
 					this._context.fillText(textBackground, xPixels, yPixels, min(measuredTextWith, maxTextWidth));
 				}
 
-				this._context.fillStyle = this._tickTextColor;
+				this._context.fillStyle = hexToRGB(this._tickTextColor, alpha);
 				this._context.fillText(text, xPixels, yPixels, maxTextWidth);
 			});
 		}
 
 		if (this._yTicksType !== TicksType.NONE) {
-			const xPixels = this._pixelsPerX * this._minXTick;
+			const xPixels = this._pixelsPerX * this._minScaleX;
 
 			this._yTicks.forEach((tick) => {
 				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * tick - TICK_TEXT_BOTTOM_MARGIN;
@@ -951,26 +973,67 @@ export default class Chart {
 		const minX = isNaN(this._minRangeX) ? this._minX : this._minRangeX;
 		const maxX = isNaN(this._maxRangeX) ? this._maxX : this._maxRangeX;
 
-		const spacing = (maxX - minX) / this._ticksCount;
+		let spacing = this._xTicksSpacing;
 		if (!spacing) {
-			this._minXTick = NaN;
-			this._maxXTick = NaN;
+			spacing = (maxX - minX) / this._ticksCount;
+		} else {
+			const ticksCount = (maxX - minX) / spacing;
+
+			if (ticksCount > this._ticksCount) {
+				spacing *= 2;
+			}
+
+			if (ticksCount < this._ticksCount - 2) {
+				spacing /= 2;
+			}
+
+			if (isNaN(ticksCount)) {
+				spacing = NaN;
+			}
+		}
+
+		if (!spacing) {
+			this._minScaleX = NaN;
+			this._maxScaleX = NaN;
 			this._pixelsPerX = NaN;
+
 			this._xTicks = [];
+			this._xTicksSpacing = NaN;
+			this._xTicksAlphas.clear();
 
 			return;
 		}
 
-		this._minXTick = minX;
-		this._maxXTick = maxX;
+		this._minScaleX = minX;
+		this._maxScaleX = maxX;
+		this._calculatePixelsPerX();
 
-		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxXTick - this._minXTick);
+		if (this._xTicksSpacing !== spacing) {
+			this._xTicksSpacing = spacing;
+			this._xTicksAlphas.clear();
+		}
 
-		const offsetX = this._maxXTick === this._maxX ? 0 : (this._minX - this._minXTick) % spacing;
+		const offsetX = (this._minX - this._minScaleX) % spacing;
+		const actualTicksCount = (this._maxScaleX - this._minScaleX) / spacing;
 
-		this._xTicks = [this._minXTick + offsetX];
-		while (this._xTicks[this._xTicks.length - 1] < (this._maxXTick + offsetX)) {
-			this._xTicks.push(this._minXTick + offsetX + (this._xTicks.length * spacing));
+		this._xTicks = [this._minScaleX + offsetX];
+		while (this._xTicks[this._xTicks.length - 1] < (this._maxScaleX + offsetX)) {
+			const tick = this._minScaleX + offsetX + (this._xTicks.length * spacing);
+
+			this._xTicks.push(tick);
+			this._xTicksAlphas.delete(tick);
+		}
+
+		if (actualTicksCount < this._ticksCount - 1) {
+			this._xTicks.slice()
+				.forEach((tick) => {
+					const interTick = tick + (spacing / 2);
+
+					if (interTick < this._maxScaleX) {
+						this._xTicks.splice(this._xTicks.indexOf(tick), 1, tick, interTick);
+						this._xTicksAlphas.set(interTick, (this._ticksCount - 1) - actualTicksCount);
+					}
+				});
 		}
 	}
 
@@ -983,9 +1046,10 @@ export default class Chart {
 
 		let spacing = (maxY - minY) / this._ticksCount;
 		if (!spacing) {
-			this._minYTick = NaN;
-			this._maxYTick = NaN;
+			this._minScaleY = NaN;
+			this._maxScaleY = NaN;
 			this._pixelsPerY = NaN;
+
 			this._yTicks = [];
 			this._yTicksAlphas.clear();
 
@@ -996,24 +1060,23 @@ export default class Chart {
 		if (isNice) {
 			spacing = niceNumber(spacing);
 
-			const ticksNumber = ceil(maxY / spacing) - floor(minY / spacing);
-			if (ticksNumber > this._ticksCount) {
-				spacing = niceNumber(ticksNumber * spacing / this._ticksCount);
+			const niceTicksCount = ceil(maxY / spacing) - floor(minY / spacing);
+			if (niceTicksCount > this._ticksCount) {
+				spacing = niceNumber(niceTicksCount * spacing / this._ticksCount);
 			}
 		}
 
 		const newMinYTick = isNice ? (floor(minY / spacing) * spacing) : minY;
 		const newMaxYTick = isNice ? (ceil(maxY / spacing) * spacing) : maxY;
 
-		if (isNaN(this._minYTick) || isNaN(this._maxYTick)) {
-			this._minYTick = newMinYTick;
-			this._maxYTick = newMaxYTick;
+		if (isNaN(this._minScaleY) || isNaN(this._maxScaleY)) {
+			this._minScaleY = newMinYTick;
+			this._maxScaleY = newMaxYTick;
+			this._calculatePixelsPerY();
 
-			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxYTick - this._minYTick);
-
-			this._yTicks = [this._minYTick];
-			while (this._yTicks[this._yTicks.length - 1] < this._maxYTick) {
-				this._yTicks.push(this._minYTick + (this._yTicks.length * spacing));
+			this._yTicks = [this._minScaleY];
+			while (this._yTicks[this._yTicks.length - 1] < this._maxScaleY) {
+				this._yTicks.push(this._minScaleY + (this._yTicks.length * spacing));
 			}
 
 			return;
@@ -1022,8 +1085,8 @@ export default class Chart {
 		const currentTransitionIntervals = this._yScaleTransition && this._yScaleTransition.getIntervals();
 		const currentTransitionValues = this._yScaleTransition && this._yScaleTransition.getValues();
 
-		const oldMinYTick = currentTransitionIntervals ? currentTransitionIntervals[0].to : this._minYTick;
-		const oldMaxYTick = currentTransitionIntervals ? currentTransitionIntervals[1].to : this._maxYTick;
+		const oldMinYTick = currentTransitionIntervals ? currentTransitionIntervals[0].to : this._minScaleY;
+		const oldMaxYTick = currentTransitionIntervals ? currentTransitionIntervals[1].to : this._maxScaleY;
 
 		if (newMinYTick === oldMinYTick && newMaxYTick === oldMaxYTick) {
 			return;
@@ -1060,9 +1123,8 @@ export default class Chart {
 		];
 
 		const onTransitionProgress = ([minYTick, maxYTick, alphaDiff]) => {
-			this._minYTick = minYTick;
-			this._maxYTick = maxYTick;
-
+			this._minScaleY = minYTick;
+			this._maxScaleY = maxYTick;
 			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (maxYTick - minYTick);
 
 			this._yTicks.forEach((tick) => {
@@ -1131,6 +1193,32 @@ export default class Chart {
 		this._graphsRanges.clear();
 		this._graphsAlphas.clear();
 		this._graphsTransitions.clear();
+	}
+
+	/**
+	 * @private
+	 */
+	_clearTicks() {
+		this._xTicks.length = 0;
+		this._xTicksSpacing = NaN;
+		this._xTicksAlphas.clear();
+
+		this._yTicks.length = 0;
+		this._yTicksAlphas.clear();
+	}
+
+	/**
+	 * @private
+	 */
+	_calculatePixelsPerX() {
+		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxScaleX - this._minScaleX);
+	}
+
+	/**
+	 * @private
+	 */
+	_calculatePixelsPerY() {
+		this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxScaleY - this._minScaleY);
 	}
 }
 

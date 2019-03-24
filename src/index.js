@@ -39,8 +39,8 @@ const zoomChart = new Chart(zoomChartCanvas, {
 	yTicksBackground: true,
 	topPadding: 30,
 	bottomPadding: 40,
+	ticksCount: mobileMedia.matches ? 3 : 5,
 	graphLineThickness: mobileMedia.matches ? 2 : 3,
-	ticksCount: 6,
 	emptyText: 'No data'
 });
 
@@ -97,6 +97,7 @@ window.addEventListener('load', () => {
 			});
 
 			mobileMedia.addListener(() => {
+				zoomChart.setTicksCount(mobileMedia.matches ? 3 : 5);
 				zoomChart.setGraphLineThickness(mobileMedia.matches ? 2 : 3);
 				overviewChart.setGraphLineThickness(mobileMedia.matches ? 1 : 2);
 
