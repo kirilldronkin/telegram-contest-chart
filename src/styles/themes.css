@@ -4,6 +4,10 @@ body._day {
 	background: #fff;
 }
 
+body._day #title {
+	color: #101010;
+}
+
 body._day .select__chart:hover {
 	background: #a9b3b9;
 }
@@ -54,6 +58,10 @@ body._day .label__title {
 
 body._night {
 	background: #232f3d;
+}
+
+body._night #title {
+	color: #fff;
 }
 
 body._night .select__chart:hover {

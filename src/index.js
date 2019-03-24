@@ -60,6 +60,7 @@ const cursor = new Cursor();
 const zoombarContainer = /** @type {HTMLElement} */ (document.querySelector('#zoombar'));
 const zoombar = new Zoombar(zoombarContainer);
 
+const title = document.querySelector('#title');
 const legendContainer = document.querySelector('#legend');
 const selectContainer = document.querySelector('#select');
 const themeSwitchButton = document.querySelector('#theme-switch-button');
@@ -225,10 +226,14 @@ function selectGraphSet(set) {
 
 	zoombar.setRange(ZOOMBAR_GRIP_SIZE, zoombarContainer.offsetWidth - ZOOMBAR_GRIP_SIZE);
 
+	const chartIndex = graphSets.indexOf(set);
+
 	Array.from(selectContainer.childNodes)
 		.forEach((child, index) => {
-			child.classList.toggle('_active', index === graphSets.indexOf(set));
+			child.classList.toggle('_active', index === chartIndex);
 		});
+
+	title.textContent = `Chart #${chartIndex + 1}`;
 }
 
 function resize() {

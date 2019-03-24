@@ -10,6 +10,7 @@
 	</head>
 	<body>
 		<div id="select"></div>
+		<div id="title"></div>
 
 		<div id="zoom-chart">
 			<canvas id="zoom-chart-canvas"></canvas>
@@ -21,7 +22,6 @@
 		</div>
 
 		<div id="legend"></div>
-
 		<div id="theme-switch-button"></div>
 
 		%SCRIPTS%
