@@ -31,7 +31,7 @@ body {
 }
 
 #theme-switch-button {
-	color: #2f8ce7;
+	color: #22a8ee;
 	text-align: center;
 	font-size: 20px;
 	margin-top: 40px;
@@ -197,7 +197,7 @@ body {
 
 .cursor__ruler {
 	position: absolute;
-	border-right: 2px solid;
+	border-right: 2px dashed;
 	margin-left: -1px;
 	z-index: 1;
 }

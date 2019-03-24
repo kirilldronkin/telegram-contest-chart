@@ -158,18 +158,18 @@ function selectTheme(theme) {
 	}[theme];
 
 	zoomChart.setTickLineColor({
-		[Theme.DAY]: '#eef1f4',
-		[Theme.NIGHT]: '#2f3a4b'
+		[Theme.DAY]: '#dfe7eb',
+		[Theme.NIGHT]: '#394959'
 	}[theme]);
 
 	zoomChart.setTickTextColor({
-		[Theme.DAY]: '#ced4d7',
-		[Theme.NIGHT]: '#4e5e6f'
+		[Theme.DAY]: '#a9b3b9',
+		[Theme.NIGHT]: '#4c5f6f'
 	}[theme]);
 
 	zoomChart.setTickBackgroundColor({
 		[Theme.DAY]: '#ffffff',
-		[Theme.NIGHT]: '#252f3f'
+		[Theme.NIGHT]: '#232f3d'
 	}[theme]);
 
 	zoomChart.draw();

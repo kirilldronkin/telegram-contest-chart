@@ -5,31 +5,31 @@ body._day {
 }
 
 body._day .select__chart:hover {
-	background: #ced4d7;
+	background: #a9b3b9;
 }
 
 body._day .select__chart._active {
-	border-color: #ced4d7;
+	border-color: #a9b3b9;
 }
 
 body._day .zoombar__pan {
-	border-color: #ced4d7;
+	border-color: #a9b3b9;
 }
 
 body._day .zoombar__grip {
-	background: #ced4d7;
+	background: #a9b3b9;
 }
 
 body._day .zoombar__overlay {
-	background: #ced4d7;
+	background: #a9b3b9;
 }
 
 body._day .checkbox {
-	border-color: #ced4d7;
+	border-color: #a9b3b9;
 }
 
 body._day .checkbox__text {
-	color: #464b4e;
+	color: #101010;
 }
 
 body._day .cursor__marker {
@@ -37,67 +37,67 @@ body._day .cursor__marker {
 }
 
 body._day .cursor__ruler {
-	border-color: #eef1f4;
+	border-color: #dfe7eb;
 }
 
 body._day .label {
-	color: #eaeaea;
+	color: #e7e7e7;
 	background: #fff;
-	border-color: #ced4d7;
+	border-color: #a9b3b9;
 }
 
 body._day .label__title {
-	color: #464b4e;
+	color: #101010;
 }
 
 /* Night */
 
 body._night {
-	background: #252f3f;
+	background: #232f3d;
 }
 
 body._night .select__chart:hover {
-	background: #4e5e6f;
+	background: #4c5f6f;
 }
 
 body._night .select__chart._active {
-	border-color: #4e5e6f;
+	border-color: #4c5f6f;
 }
 
 body._night .zoombar__pan {
-	border-color: #4e5e6f;
+	border-color: #4c5f6f;
 }
 
 body._night .zoombar__grip {
-	background: #4e5e6f;
+	background: #4c5f6f;
 }
 
 body._night .zoombar__overlay {
-	background: #4e5e6f;
+	background: #4c5f6f;
 }
 
 body._night .checkbox {
-	border-color: #4e5e6f;
+	border-color: #4c5f6f;
 }
 
 body._night .checkbox__text {
-	color: #d6dbde;
+	color: #fff;
 }
 
 body._night .cursor__marker {
-	background: #252f3f;
+	background: #232f3d;
 }
 
 body._night .cursor__ruler {
-	border-color: #2f3a4b;
+	border-color: #394959;
 }
 
 body._night .label {
 	color: #2a2a2a;
-	background: #252f3f;
-	border-color: #252f3f;
+	background: #232f3d;
+	border-color: #202b38;
 }
 
 body._night .label__title {
-	color: #d6dbde;
+	color: #fff;
 }
