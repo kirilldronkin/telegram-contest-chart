@@ -11,7 +11,7 @@ See the [demo](http://dronkin.ru/telegram-contest-chart/).
 
 The application written on pure JavaScript without usage of any 3th-party libraries.
 The source code is ECMAScript 2018 which is transpiled to ECMAScript 2015, so the target browser must support it as well.
-Also the source code is annotated for [Closure Compiler](https://developers.google.com/closure/compiler/) to produce a bundle with maximum possible size.
+Also the source code is annotated for [Closure Compiler](https://developers.google.com/closure/compiler/) to produce a bundle with the minimum possible size.
 
 ## Features
 
