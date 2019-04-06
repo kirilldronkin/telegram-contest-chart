@@ -12,6 +12,15 @@ function identity(value) {
 }
 
 /**
+ * @template TYPE
+ * @param {Array<TYPE>} values
+ * @return {Array<TYPE>}
+ */
+function unique(values) {
+	return Array.from(new Set(values));
+}
+
+/**
  * @param {string=} className
  * @param {string=} text
  * @returns {HTMLDivElement}
@@ -45,6 +54,14 @@ function hexToRGB(hex, alpha) {
 	const b = parseInt(hex.slice(5, 7), 16);
 
 	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * @param {string} text
+ * @return {string}
+ */
+function createTextBackground(text) {
+	return Array(text.length).fill('█').join('');
 }
 
 /**
@@ -211,8 +228,10 @@ function formatDate(date, spacing) {
 export {
 	noop,
 	identity,
+	unique,
 	createDiv,
 	hexToRGB,
+	createTextBackground,
 	clamp,
 	findMax,
 	findMin,

@@ -3,31 +3,33 @@ import Point from './point.js';
 import Transition, {Timing} from './transition.js';
 import {
 	identity,
+	unique,
 	clamp,
 	findMax,
 	findMin,
 	niceNumber,
 	compactNumber,
 	formatDate,
-	hexToRGB
+	hexToRGB,
+	createTextBackground
 } from './utils.js';
 
 const {ceil, floor, min} = Math;
 
 /**
+ * @const {string}
+ */
+const FONT = 'Arial, Helvetica, Verdana, sans-serif';
+
+/**
  * @const {number}
  */
-const TRANSITION_DURATION = 350;
+const EMPTY_TEXT_SIZE = 20;
 
 /**
  * @const {string}
  */
-const NO_DATA_TEXT_FONT = '20px Arial, Helvetica, Verdana, sans-serif';
-
-/**
- * @const {string}
- */
-const TICK_FONT = '15px Arial, Helvetica, Verdana, sans-serif';
+const TICK_SIZE = 15;
 
 /**
  * @const {number}
@@ -38,6 +40,11 @@ const TICK_TEXT_BOTTOM_MARGIN = 10;
  * @const {number}
  */
 const TICK_LINE_THICKNESS = 1;
+
+/**
+ * @const {number}
+ */
+const TRANSITION_DURATION = 350;
 
 /**
  * @enum {string}
@@ -98,9 +105,9 @@ export default class Chart {
 		rightPadding = 0,
 		graphLineThickness = 1,
 		ticksCount = 10,
-		tickLineColor = '#000',
-		tickTextColor = '#000',
-		tickBackgroundColor = '#000',
+		tickLineColor = '#000000',
+		tickTextColor = '#000000',
+		tickBackgroundColor = '#000000',
 		emptyText = ''
 	} = {}) {
 		/**
@@ -561,7 +568,6 @@ export default class Chart {
 
 		this._width = NaN;
 		this._height = NaN;
-
 		this._pixelsPerX = NaN;
 		this._pixelsPerY = NaN;
 
@@ -820,12 +826,14 @@ export default class Chart {
 	_draw() {
 		this._prepareCanvas();
 
-		this._drawGrid();
-		this._drawGraphs();
-		this._drawTicks();
+		const isEmpty = this._minRangeX === this._maxRangeX || isNaN(this._minX) && isNaN(this._maxX);
 
-		if (this._minRangeX === this._maxRangeX || isNaN(this._minX) && isNaN(this._maxX)) {
+		if (isEmpty) {
 			this._drawEmptyText();
+		} else {
+			this._drawGrid();
+			this._drawGraphs();
+			this._drawTicks();
 		}
 	}
 
@@ -893,7 +901,7 @@ export default class Chart {
 	 * @private
 	 */
 	_drawTicks() {
-		this._context.font = TICK_FONT;
+		this._context.font = `${TICK_SIZE}px ${FONT}`;
 
 		if (this._xTicksType !== TicksType.NONE) {
 			const yPixels = this._height - this._pixelsPerY * this._minScaleY - TICK_TEXT_BOTTOM_MARGIN;
@@ -917,7 +925,7 @@ export default class Chart {
 				}
 
 				if (this._xTicksBackround) {
-					const textBackground = createTextBackgroundStub(text);
+					const textBackground = createTextBackground(text);
 					const measuredTextWith = this._context.measureText(text).width;
 
 					this._context.fillStyle = this._tickBackgroundColor;
@@ -941,7 +949,7 @@ export default class Chart {
 				this._context.textAlign = 'start';
 
 				if (this._yTicksBackround) {
-					const textBackground = createTextBackgroundStub(text);
+					const textBackground = createTextBackground(text);
 					const measuredTextWith = this._context.measureText(text).width;
 
 					this._context.fillStyle = hexToRGB(this._tickBackgroundColor, alpha);
@@ -958,7 +966,7 @@ export default class Chart {
 	 * @private
 	 */
 	_drawEmptyText() {
-		this._context.font = NO_DATA_TEXT_FONT;
+		this._context.font = `${EMPTY_TEXT_SIZE}px ${FONT}`;
 		this._context.textBaseline = 'middle';
 		this._context.textAlign = 'center';
 
@@ -1062,12 +1070,12 @@ export default class Chart {
 			}
 		}
 
-		const newMinYTick = isNice ? (floor(minY / spacing) * spacing) : minY;
-		const newMaxYTick = isNice ? (ceil(maxY / spacing) * spacing) : maxY;
+		const newMinScaleY = isNice ? (floor(minY / spacing) * spacing) : minY;
+		const newMaxScaleY = isNice ? (ceil(maxY / spacing) * spacing) : maxY;
 
 		if (isNaN(this._minScaleY) || isNaN(this._maxScaleY)) {
-			this._minScaleY = newMinYTick;
-			this._maxScaleY = newMaxYTick;
+			this._minScaleY = newMinScaleY;
+			this._maxScaleY = newMaxScaleY;
 			this._calculatePixelsPerY();
 
 			this._yTicks = [this._minScaleY];
@@ -1081,21 +1089,21 @@ export default class Chart {
 		const currentTransitionIntervals = this._yScaleTransition && this._yScaleTransition.getIntervals();
 		const currentTransitionValues = this._yScaleTransition && this._yScaleTransition.getValues();
 
-		const oldMinYTick = currentTransitionIntervals ? currentTransitionIntervals[0].to : this._minScaleY;
-		const oldMaxYTick = currentTransitionIntervals ? currentTransitionIntervals[1].to : this._maxScaleY;
+		const oldMinScaleY = currentTransitionIntervals ? currentTransitionIntervals[0].to : this._minScaleY;
+		const oldMaxScaleY = currentTransitionIntervals ? currentTransitionIntervals[1].to : this._maxScaleY;
 
-		if (newMinYTick === oldMinYTick && newMaxYTick === oldMaxYTick) {
+		if (newMinScaleY === oldMinScaleY && newMaxScaleY === oldMaxScaleY) {
 			return;
 		}
 
 		const oldYTicks = this._yTicks.slice();
 
-		const newYTicks = [newMinYTick];
-		while (newYTicks[newYTicks.length - 1] < newMaxYTick) {
-			newYTicks.push(newMinYTick + (newYTicks.length * spacing));
+		const newYTicks = [newMinScaleY];
+		while (newYTicks[newYTicks.length - 1] < newMaxScaleY) {
+			newYTicks.push(newMinScaleY + (newYTicks.length * spacing));
 		}
 
-		this._yTicks = Array.from(new Set([...oldYTicks, ...newYTicks].sort((a, b) => a - b)));
+		this._yTicks = unique([...oldYTicks, ...newYTicks]).sort((a, b) => a - b);
 		this._yTicks.forEach((tick) => {
 			if (this._yTicksAlphas.has(tick)) {
 				return;
@@ -1113,15 +1121,15 @@ export default class Chart {
 		const initialYTicksAlphas = new Map(this._yTicksAlphas);
 
 		const transitionIntervals = [
-			{from: currentTransitionValues ? currentTransitionValues[0] : oldMinYTick, to: newMinYTick},
-			{from: currentTransitionValues ? currentTransitionValues[1] : oldMaxYTick, to: newMaxYTick},
+			{from: currentTransitionValues ? currentTransitionValues[0] : oldMinScaleY, to: newMinScaleY},
+			{from: currentTransitionValues ? currentTransitionValues[1] : oldMaxScaleY, to: newMaxScaleY},
 			{from: 0, to: 1}
 		];
 
-		const onTransitionProgress = ([minYTick, maxYTick, alphaDiff]) => {
-			this._minScaleY = minYTick;
-			this._maxScaleY = maxYTick;
-			this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (maxYTick - minYTick);
+		const onTransitionProgress = ([minScaleY, maxScaleY, alphaDiff]) => {
+			this._minScaleY = minScaleY;
+			this._maxScaleY = maxScaleY;
+			this._calculatePixelsPerY();
 
 			this._yTicks.forEach((tick) => {
 				const initialAlpha = initialYTicksAlphas.get(tick);
@@ -1138,9 +1146,9 @@ export default class Chart {
 			this._yScaleTransition = null;
 			this._yTicksAlphas.clear();
 
-			this._yTicks = [newMinYTick];
-			while (this._yTicks[this._yTicks.length - 1] < newMaxYTick) {
-				this._yTicks.push(newMinYTick + (this._yTicks.length * spacing));
+			this._yTicks = [newMinScaleY];
+			while (this._yTicks[this._yTicks.length - 1] < newMaxScaleY) {
+				this._yTicks.push(newMinScaleY + (this._yTicks.length * spacing));
 			}
 		};
 
@@ -1216,12 +1224,4 @@ export default class Chart {
 	_calculatePixelsPerY() {
 		this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxScaleY - this._minScaleY);
 	}
-}
-
-/**
- * @param {string} text
- * @return {string}
- */
-function createTextBackgroundStub(text) {
-	return Array(text.length).fill('█').join('')
 }
