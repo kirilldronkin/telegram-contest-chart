@@ -56,21 +56,17 @@ body {
 .select__chart {
 	position: relative;
 	display: inline-block;
-	width: 18%;
+	width: 19%;
 	height: 50px;
-	margin-right: 2%;
+	margin-right: 1.25%;
 	cursor: pointer;
 	box-sizing: border-box;
 	padding-bottom: 5px;
 	border: 1px solid transparent;
 }
 
-.select__chart:first-child {
-	margin-left: 1%;
-}
-
 .select__chart:last-child {
-	margin-right: 1%;
+	margin-right: 0;
 }
 
 .zoombar {
