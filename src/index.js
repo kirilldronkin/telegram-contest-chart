@@ -12,14 +12,14 @@ import Checkbox from './ui/checkbox.js';
 const THEME_STORAGE_KEY = 'telegram-contest-chart_theme';
 
 /**
- * @const {number}
- */
-const ZOOMBAR_GRIP_SIZE = 15;
-
-/**
  * @const {string}
  */
 const MOBILE_MEDIA_QUERY = 'only screen and (max-width: 480px) and (orientation: portrait)';
+
+/**
+ * @const {number}
+ */
+const ZOOMBAR_GRIP_SIZE = 15;
 
 /**
  * @enum {string}
@@ -64,6 +64,7 @@ const title = document.querySelector('#title');
 const legendContainer = document.querySelector('#legend');
 const selectContainer = document.querySelector('#select');
 const themeSwitchButton = document.querySelector('#theme-switch-button');
+const repoLink = document.querySelector('#repo-link');
 
 const graphSets = [];
 const selectableCharts = [];
@@ -138,9 +139,12 @@ window.addEventListener('load', () => {
 			});
 
 			selectTheme(currentTheme);
+
 			if (graphSets[0]) {
 				selectGraphSet(graphSets[0]);
 			}
+
+			repoLink.textContent = 'https://github.com/kirilldronkin/telegram-contest-chart';
 		});
 });
 
@@ -218,11 +222,11 @@ function selectGraphSet(set) {
 		legendContainer.appendChild(checkboxContainer);
 	});
 
-	overviewChart.resize();
-	overviewChart.draw();
-
 	zoomChart.resize();
 	zoomChart.draw();
+
+	overviewChart.resize();
+	overviewChart.draw();
 
 	zoombar.setRange(ZOOMBAR_GRIP_SIZE, zoombarContainer.offsetWidth - ZOOMBAR_GRIP_SIZE);
 
@@ -242,13 +246,15 @@ function resize() {
 		chart.draw();
 	});
 
+	cursor.clear();
+	cursor.resize();
+
 	const range = zoomChart.getRange();
 	const startPixels = overviewChart.getPixelsByX(range.start);
 	const endPixels = overviewChart.getPixelsByX(range.end);
 
+	zoombar.resize();
 	zoombar.setRange(startPixels, endPixels);
-
-	cursor.clear();
 }
 
 function zoom() {

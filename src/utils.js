@@ -12,6 +12,15 @@ function identity(value) {
 }
 
 /**
+ * @template TYPE
+ * @param {Array<TYPE>} values
+ * @return {Array<TYPE>}
+ */
+function unique(values) {
+	return Array.from(new Set(values));
+}
+
+/**
  * @param {string=} className
  * @param {string=} text
  * @returns {HTMLDivElement}
@@ -48,6 +57,14 @@ function hexToRGB(hex, alpha) {
 }
 
 /**
+ * @param {string} text
+ * @return {string}
+ */
+function createTextBackground(text) {
+	return Array(text.length).fill('█').join('');
+}
+
+/**
  * @param {number} value
  * @param {number} minBoundary
  * @param {number} maxBoundary
@@ -60,37 +77,53 @@ function clamp(value, minBoundary, maxBoundary) {
 /**
  * @param {Array<*>} array
  * @param {function(*): number} extractor
- * @param {function(number, number)} comparator
+ * @param {{
+ *     sorted: (boolean|undefined)
+ * }=} opt
  * @return {number}
  */
-function findNumber(array, extractor, comparator) {
-	return array.reduce((last, item) => {
-		const value = extractor(item);
+function findMax(array, extractor, {sorted = false} = {}) {
+	if (sorted && array.length) {
+		return extractor(array[array.length - 1]);
+	}
 
-		if (isNaN(value) || isNaN(last)) {
-			return value;
+	let found = NaN;
+
+	for (let i = 0; i < array.length; i++) {
+		const value = extractor(array[i]);
+
+		if (isNaN(found) || value > found) {
+			found = value;
 		}
+	}
 
-		return comparator(last, value);
-	}, NaN);
+	return found;
 }
 
 /**
  * @param {Array<*>} array
  * @param {function(*): number} extractor
+ * @param {{
+ *     sorted: (boolean|undefined)
+ * }=} opt
  * @return {number}
  */
-function findMax(array, extractor) {
-	return findNumber(array, extractor, max);
-}
+function findMin(array, extractor, {sorted = false} = {}) {
+	if (sorted && array.length) {
+		return extractor(array[0]);
+	}
 
-/**
- * @param {Array<*>} array
- * @param {function(*): number} extractor
- * @return {number}
- */
-function findMin(array, extractor) {
-	return findNumber(array, extractor, min);
+	let found = NaN;
+
+	for (let i = 0; i < array.length; i++) {
+		const value = extractor(array[i]);
+
+		if (isNaN(found) || value < found) {
+			found = value;
+		}
+	}
+
+	return found;
 }
 
 /**
@@ -180,39 +213,46 @@ function to12Hours(date, {withMinutes = false} = {}) {
 /**
  * Reinvent the wheel cuz Date#toLocaleDateString() is extremely slow
  * @param {Date} date
- * @param {number} spacing
+ * @param {DateUnit=} unit
  * @return {string}
  */
-function formatDate(date, spacing) {
-	const msInSecond = 1000;
-	const msInMinute = msInSecond * 60;
-	const msInHour = msInMinute * 60;
-	const msInDay = msInHour * 24;
-	const msInMonth = msInDay * 30;
-	const msInYear = msInMonth * 12;
-
-	if (spacing / msInYear >= 1) {
+function formatDate(date, unit) {
+	if (unit === DateUnit.YEAR) {
 		return `${date.getFullYear()}`;
-	} else if (spacing / msInMonth >= 1) {
+	} else if (unit === DateUnit.MONTH) {
 		return `${date.getFullYear()} ${getShortMonthName(date.getMonth())}`;
-	} else if (spacing / msInDay >= 1) {
+	} else if (unit === DateUnit.DAY) {
 		return `${getShortMonthName(date.getMonth())} ${date.getDate()}`;
-	} else if (spacing / msInHour >= 1) {
+	} else if (unit === DateUnit.HOUR) {
 		return `${getShortMonthName(date.getMonth())} ${date.getDate()} ${to12Hours(date)}`;
-	} else if (spacing / msInMinute >= 1) {
+	} else if (unit === DateUnit.MINUTE) {
 		return `${to12Hours(date, {withMinutes: true})}`
-	} else if (spacing / msInSecond >= 1) {
+	} else if (unit === DateUnit.SECOND) {
 		return `${date.getMinutes()}:${String(date.getSeconds()).padStart(2, '0')}`;
 	}
 
 	return date.toString();
 }
 
+/**
+ * @enum {string}
+ */
+const DateUnit = {
+	YEAR: 'year',
+	MONTH: 'month',
+	DAY: 'day',
+	HOUR: 'hour',
+	MINUTE: 'minute',
+	SECOND: 'second'
+};
+
 export {
 	noop,
 	identity,
+	unique,
 	createDiv,
 	hexToRGB,
+	createTextBackground,
 	clamp,
 	findMax,
 	findMin,
@@ -222,5 +262,6 @@ export {
 	compactNumber,
 	getShortMonthName,
 	to12Hours,
-	formatDate
+	formatDate,
+	DateUnit
 };

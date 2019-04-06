@@ -31,7 +31,9 @@ export default class Graph {
 	 */
 	getMin() {
 		return {
-			x: findMin(this.points, (point) => point.x),
+			x: findMin(this.points, (point) => point.x, {
+				sorted: true
+			}),
 			y: findMin(this.points, (point) => point.y)
 		};
 	}
@@ -41,7 +43,9 @@ export default class Graph {
 	 */
 	getMax() {
 		return {
-			x: findMax(this.points, (point) => point.x),
+			x: findMax(this.points, (point) => point.x, {
+				sorted: true
+			}),
 			y: findMax(this.points, (point) => point.y)
 		};
 	}

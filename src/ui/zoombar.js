@@ -19,6 +19,12 @@ export default class Zoombar {
 		this._container = container;
 
 		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._containerSize = NaN;
+
+		/**
 		 * @type {function()}
 		 * @private
 		 */
@@ -88,6 +94,10 @@ export default class Zoombar {
 		this._listenDOMEvents();
 	}
 
+	resize() {
+		this._containerSize = this._container.offsetWidth;
+	}
+
 	/**
 	 * @param {function()} listener
 	 */
@@ -100,10 +110,8 @@ export default class Zoombar {
 	 * @param {number} end
 	 */
 	setRange(start, end) {
-		const containerSize = this._container.offsetWidth;
-
 		this._renderLeftOverlaySize(start - this._leftGripSize);
-		this._renderRightOverlaySize(containerSize - end - this._rightGripSize);
+		this._renderRightOverlaySize(this._containerSize - end - this._rightGripSize);
 		this._renderPanSize(end - start);
 	}
 
@@ -122,6 +130,7 @@ export default class Zoombar {
 	 */
 	_setupDOM() {
 		this._container.classList.add('zoombar');
+		this._containerSize = this._container.offsetWidth;
 
 		this._leftGrip = createDiv('zoombar__grip');
 		this._leftOverlay = createDiv('zoombar__overlay');
@@ -163,9 +172,8 @@ export default class Zoombar {
 	 * @private
 	 */
 	_renderPanSize(size) {
-		const containerSize = this._container.offsetWidth;
 		const gripsSize = this._leftGripSize + this._rightGripSize;
-		const draggable = size < containerSize - gripsSize;
+		const draggable = size < this._containerSize - gripsSize;
 
 		this._panSize = size;
 		this._pan.style.width = `${size}px`;
