@@ -239,11 +239,10 @@ export default class Cursor {
 			}
 		});
 
-		this.clear();
-
 		if (foundPointsByGraph.size) {
-			let nearestPoint;
+			this.clear();
 
+			let nearestPoint;
 			Array.from(foundPointsByGraph.entries())
 				.forEach(([graph, point]) => {
 					this._addMarker(graph, point);
