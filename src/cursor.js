@@ -11,6 +11,11 @@ const {abs} = Math;
  */
 const LABEL_MARGIN = 10;
 
+/**
+ * @const {number}
+ */
+const MOVE_DEBOUNCE_TIME = 100;
+
 export default class Cursor {
 	constructor() {
 		/**
@@ -18,6 +23,12 @@ export default class Cursor {
 		 * @private
 		 */
 		this._area = null;
+
+		/**
+		 * @type {?ClientRect}
+		 * @private
+		 */
+		this._areaRect = null;
 
 		/**
 		 * @type {?Chart}
@@ -56,6 +67,12 @@ export default class Cursor {
 		this._touchRadiusX = NaN;
 
 		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._lastMoveTime = NaN;
+
+		/**
 		 * @type {function(Event)}
 		 * @private
 		 */
@@ -85,6 +102,8 @@ export default class Cursor {
 		}
 
 		this._area = /** @type {HTMLElement} */ (chart.getCanvas().parentElement);
+		this._areaRect = this._area.getBoundingClientRect();
+
 		this._area.addEventListener('mousemove', this._onMouseMoveBinded);
 		this._area.addEventListener('mouseleave', this._onMouseLeaveBinded);
 		this._area.addEventListener('touchstart', this._onTouchStartBinded);
@@ -100,6 +119,12 @@ export default class Cursor {
 		this._removeAllMarkers();
 		this._removeRuler();
 		this._removeLabel()
+	}
+
+	resize() {
+		if (this._area) {
+			this._areaRect = this._area.getBoundingClientRect();
+		}
 	}
 
 	/**
@@ -138,7 +163,7 @@ export default class Cursor {
 
 		this._ruler.style.left = `${offset}px`;
 		this._ruler.style.top = `${chartTopPadding}px`;
-		this._ruler.style.height = `${this._area.offsetHeight - chartTopPadding - chartBottomPadding}px`;
+		this._ruler.style.height = `${this._areaRect.height - chartTopPadding - chartBottomPadding}px`;
 
 		this._area.appendChild(this._ruler);
 	}
@@ -185,7 +210,7 @@ export default class Cursor {
 
 		this._area.appendChild(this._labelContainer);
 
-		const areaSize = this._area.offsetWidth;
+		const areaSize = this._areaRect.width;
 		const labelSize = this._labelContainer.offsetWidth;
 
 		let position;
@@ -216,9 +241,13 @@ export default class Cursor {
 	_onMouseMove(event) {
 		event = /** @type {MouseEvent} */ (event);
 
-		const areaRect = this._area.getBoundingClientRect();
-		const areaX = event.clientX - areaRect.left;
-		const areaY = event.clientY - areaRect.top;
+		const now = Date.now();
+		if (now - this._lastMoveTime < MOVE_DEBOUNCE_TIME) {
+			return;
+		}
+
+		const areaX = event.clientX - this._areaRect.left;
+		const areaY = event.clientY - this._areaRect.top;
 
 		const toleranceX = this._touchRadiusX || this._chart.getGraphLineThickness();
 		const minChartX = this._chart.getXByPixels(areaX - toleranceX);
@@ -230,11 +259,10 @@ export default class Cursor {
 		const foundPointsByGraph = new Map();
 
 		drawnGraphs.forEach((graph) => {
-			const point = graph.points.find((point) =>
-				point.x >= minChartX && point.x <= maxChartX
-			);
+			const point = graph.getRange(minChartX, maxChartX)
+				.find((point) => !point.isInterpolated);
 
-			if (point && !point.isInterpolated) {
+			if (point) {
 				foundPointsByGraph.set(graph, point);
 			}
 		});
@@ -259,6 +287,7 @@ export default class Cursor {
 		}
 
 		this._touchRadiusX = NaN;
+		this._lastMoveTime = now;
 	}
 
 	/**

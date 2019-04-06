@@ -17,9 +17,12 @@ const indexHTML = fs.readFileSync(path.join(rootPath, 'index.html.tpl'), 'utf-8'
 
 const app = express();
 
-app.use('/src', express.static(srcPath));
-app.use('/data.json', express.static(path.join(rootPath, 'data.json')));
 app.get('/', (request, response) => response.send(indexHTML));
+app.use('/src', express.static(srcPath));
+
+['data.json', 'data-big.json', 'data-huge.json'].forEach((dataFile) => {
+	app.use(`/${dataFile}`, express.static(path.join(rootPath, dataFile)));
+});
 
 app.listen(8080, () => {
 	console.log('Run dev server at localhost:8080');

@@ -27,7 +27,7 @@ const FONT = 'Arial, Helvetica, Verdana, sans-serif';
 const EMPTY_TEXT_SIZE = 20;
 
 /**
- * @const {string}
+ * @const {number}
  */
 const TICK_SIZE = 15;
 
@@ -40,6 +40,11 @@ const TICK_TEXT_BOTTOM_MARGIN = 10;
  * @const {number}
  */
 const TICK_LINE_THICKNESS = 1;
+
+/**
+ * @const {number}
+ */
+const FORMAT_CACHE_MAX_SIZE = 1000;
 
 /**
  * @const {number}
@@ -243,6 +248,12 @@ export default class Chart {
 		this._xTicksAlphas = new Map();
 
 		/**
+		 * @type {Map<number, string>}
+		 * @private
+		 */
+		this._xTicksFormatCache = new Map();
+
+		/**
 		 * @type {Array<number>}
 		 * @private
 		 */
@@ -271,6 +282,12 @@ export default class Chart {
 		 * @private
 		 */
 		this._yTicksAlphas = new Map();
+
+		/**
+		 * @type {Map<number, string>}
+		 * @private
+		 */
+		this._yTicksFormatCache = new Map();
 
 		/**
 		 * @type {?Transition}
@@ -763,19 +780,31 @@ export default class Chart {
 	 */
 	formatValue(value, axis) {
 		const type = axis === Axis.X ? this._xTicksType : this._yTicksType;
+		const cache = axis === Axis.X ? this._xTicksFormatCache : this._yTicksFormatCache;
 
+		if (cache.has(value)) {
+			return cache.get(value);
+		}
+
+		let formatted;
 		if (type === TicksType.DATE) {
 			const spacing = axis === Axis.X ?
 				this._xTicksSpacing : (this._maxScaleY - this._minScaleY) / this._yTicks.length;
 
-			return formatDate(new Date(value), spacing);
+			formatted = formatDate(new Date(value), spacing);
+		} else if (type === TicksType.COMPACT) {
+			formatted = compactNumber(value);
+		} else {
+			formatted = String(value);
 		}
 
-		if (type === TicksType.COMPACT) {
-			return compactNumber(value);
+		if (cache.size === FORMAT_CACHE_MAX_SIZE) {
+			cache.clear();
 		}
 
-		return String(value);
+		cache.set(value, formatted);
+
+		return formatted;
 	}
 
 	resize() {
@@ -1206,9 +1235,11 @@ export default class Chart {
 		this._xTicks.length = 0;
 		this._xTicksSpacing = NaN;
 		this._xTicksAlphas.clear();
+		this._xTicksFormatCache.clear();
 
 		this._yTicks.length = 0;
 		this._yTicksAlphas.clear();
+		this._yTicksFormatCache.clear();
 	}
 
 	/**

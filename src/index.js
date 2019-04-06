@@ -246,13 +246,15 @@ function resize() {
 		chart.draw();
 	});
 
+	cursor.clear();
+	cursor.resize();
+
 	const range = zoomChart.getRange();
 	const startPixels = overviewChart.getPixelsByX(range.start);
 	const endPixels = overviewChart.getPixelsByX(range.end);
 
+	zoombar.resize();
 	zoombar.setRange(startPixels, endPixels);
-
-	cursor.clear();
 }
 
 function zoom() {

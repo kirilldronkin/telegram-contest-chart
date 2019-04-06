@@ -77,37 +77,53 @@ function clamp(value, minBoundary, maxBoundary) {
 /**
  * @param {Array<*>} array
  * @param {function(*): number} extractor
- * @param {function(number, number)} comparator
+ * @param {{
+ *     sorted: (boolean|undefined)
+ * }=} opt
  * @return {number}
  */
-function findNumber(array, extractor, comparator) {
-	return array.reduce((last, item) => {
-		const value = extractor(item);
+function findMax(array, extractor, {sorted = false} = {}) {
+	if (sorted && array.length) {
+		return extractor(array[array.length - 1]);
+	}
 
-		if (isNaN(value) || isNaN(last)) {
-			return value;
+	let found = NaN;
+
+	for (let i = 0; i < array.length; i++) {
+		const value = extractor(array[i]);
+
+		if (isNaN(found) || value > found) {
+			found = value;
 		}
+	}
 
-		return comparator(last, value);
-	}, NaN);
+	return found;
 }
 
 /**
  * @param {Array<*>} array
  * @param {function(*): number} extractor
+ * @param {{
+ *     sorted: (boolean|undefined)
+ * }=} opt
  * @return {number}
  */
-function findMax(array, extractor) {
-	return findNumber(array, extractor, max);
-}
+function findMin(array, extractor, {sorted = false} = {}) {
+	if (sorted && array.length) {
+		return extractor(array[0]);
+	}
 
-/**
- * @param {Array<*>} array
- * @param {function(*): number} extractor
- * @return {number}
- */
-function findMin(array, extractor) {
-	return findNumber(array, extractor, min);
+	let found = NaN;
+
+	for (let i = 0; i < array.length; i++) {
+		const value = extractor(array[i]);
+
+		if (isNaN(found) || value < found) {
+			found = value;
+		}
+	}
+
+	return found;
 }
 
 /**
