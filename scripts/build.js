@@ -17,8 +17,8 @@ const closureCompiler = new ClosureCompiler({
 	language_out: 'ECMASCRIPT_2015',
 	warning_level: 'VERBOSE',
 	module_resolution: 'BROWSER',
-	use_types_for_optimization: true,
-	compilation_level: 'ADVANCED'
+	compilation_level: 'ADVANCED',
+	use_types_for_optimization: true
 });
 
 closureCompiler.run((exitCode, stdOut, stdError) => {
@@ -50,7 +50,8 @@ Promise.all(styles.map((style) => postcssProcessor.process(style, {from: undefin
 
 const indexHTML = fs.readFileSync(path.join(rootPath, 'index.html.tpl'), 'utf-8')
 	.replace('%STYLES%', '<link rel="stylesheet" type="text/css" href="styles.css">')
-	.replace('%SCRIPTS%', '<script src="app.js"></script>');
+	.replace('%SCRIPTS%', '<script src="app.js"></script>')
+	.replace(/\n\s*/g, '');
 
 fs.writeFileSync(path.join(distPath, 'index.html'), indexHTML, 'utf-8');
 fs.copyFileSync(path.join(rootPath, 'data.json'), path.join(distPath, 'data.json'));
