@@ -213,33 +213,38 @@ function to12Hours(date, {withMinutes = false} = {}) {
 /**
  * Reinvent the wheel cuz Date#toLocaleDateString() is extremely slow
  * @param {Date} date
- * @param {number} spacing
+ * @param {DateUnit=} unit
  * @return {string}
  */
-function formatDate(date, spacing) {
-	const msInSecond = 1000;
-	const msInMinute = msInSecond * 60;
-	const msInHour = msInMinute * 60;
-	const msInDay = msInHour * 24;
-	const msInMonth = msInDay * 30;
-	const msInYear = msInMonth * 12;
-
-	if (spacing / msInYear >= 1) {
+function formatDate(date, unit) {
+	if (unit === DateUnit.YEAR) {
 		return `${date.getFullYear()}`;
-	} else if (spacing / msInMonth >= 1) {
+	} else if (unit === DateUnit.MONTH) {
 		return `${date.getFullYear()} ${getShortMonthName(date.getMonth())}`;
-	} else if (spacing / msInDay >= 1) {
+	} else if (unit === DateUnit.DAY) {
 		return `${getShortMonthName(date.getMonth())} ${date.getDate()}`;
-	} else if (spacing / msInHour >= 1) {
+	} else if (unit === DateUnit.HOUR) {
 		return `${getShortMonthName(date.getMonth())} ${date.getDate()} ${to12Hours(date)}`;
-	} else if (spacing / msInMinute >= 1) {
+	} else if (unit === DateUnit.MINUTE) {
 		return `${to12Hours(date, {withMinutes: true})}`
-	} else if (spacing / msInSecond >= 1) {
+	} else if (unit === DateUnit.SECOND) {
 		return `${date.getMinutes()}:${String(date.getSeconds()).padStart(2, '0')}`;
 	}
 
 	return date.toString();
 }
+
+/**
+ * @enum {string}
+ */
+const DateUnit = {
+	YEAR: 'year',
+	MONTH: 'month',
+	DAY: 'day',
+	HOUR: 'hour',
+	MINUTE: 'minute',
+	SECOND: 'second'
+};
 
 export {
 	noop,
@@ -257,5 +262,6 @@ export {
 	compactNumber,
 	getShortMonthName,
 	to12Hours,
-	formatDate
+	formatDate,
+	DateUnit
 };

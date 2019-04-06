@@ -10,6 +10,7 @@ import {
 	niceNumber,
 	compactNumber,
 	formatDate,
+	DateUnit,
 	hexToRGB,
 	createTextBackground
 } from './utils.js';
@@ -50,6 +51,11 @@ const FORMAT_CACHE_MAX_SIZE = 1000;
  * @const {number}
  */
 const TRANSITION_DURATION = 350;
+
+/**
+ * @typedef {Map<(number|DateUnit), (string|Map<number, string>)>}
+ */
+let FormatCache;
 
 /**
  * @enum {string}
@@ -248,10 +254,10 @@ export default class Chart {
 		this._xTicksAlphas = new Map();
 
 		/**
-		 * @type {Map<number, string>}
+		 * @type {FormatCache}
 		 * @private
 		 */
-		this._xTicksFormatCache = new Map();
+		this._xTicksFormatCache = this._createFormatCache(this._xTicksType);
 
 		/**
 		 * @type {Array<number>}
@@ -284,10 +290,10 @@ export default class Chart {
 		this._yTicksAlphas = new Map();
 
 		/**
-		 * @type {Map<number, string>}
+		 * @type {FormatCache}
 		 * @private
 		 */
-		this._yTicksFormatCache = new Map();
+		this._yTicksFormatCache = this._createFormatCache(this._yTicksType);
 
 		/**
 		 * @type {?Transition}
@@ -782,27 +788,63 @@ export default class Chart {
 		const type = axis === Axis.X ? this._xTicksType : this._yTicksType;
 		const cache = axis === Axis.X ? this._xTicksFormatCache : this._yTicksFormatCache;
 
-		if (cache.has(value)) {
-			return cache.get(value);
-		}
-
 		let formatted;
 		if (type === TicksType.DATE) {
 			const spacing = axis === Axis.X ?
-				this._xTicksSpacing : (this._maxScaleY - this._minScaleY) / this._yTicks.length;
+				(this._maxScaleX - this._minScaleX) / this._ticksCount :
+				(this._maxScaleY - this._minScaleY) / this._yTicks.length;
 
-			formatted = formatDate(new Date(value), spacing);
-		} else if (type === TicksType.COMPACT) {
-			formatted = compactNumber(value);
+			const msInSecond = 1000;
+			const msInMinute = msInSecond * 60;
+			const msInHour = msInMinute * 60;
+			const msInDay = msInHour * 24;
+			const msInMonth = msInDay * 30;
+			const msInYear = msInMonth * 12;
+
+			let unit;
+			if (spacing / msInYear >= 1) {
+				unit = DateUnit.YEAR;
+			} else if (spacing / msInMonth >= 1) {
+				unit = DateUnit.MONTH;
+			} else if (spacing / msInDay >= 1) {
+				unit = DateUnit.DAY;
+			} else if (spacing / msInHour >= 1) {
+				unit = DateUnit.HOUR;
+			} else if (spacing / msInMinute >= 1) {
+				unit = DateUnit.MINUTE;
+			} else if (spacing / msInSecond >= 1) {
+				unit = DateUnit.SECOND;
+			}
+
+			const unitCache = cache.get(unit);
+			if (unitCache.has(value)) {
+				return unitCache.get(value);
+			}
+
+			formatted = formatDate(new Date(value), unit);
+
+			if (unitCache.size === FORMAT_CACHE_MAX_SIZE) {
+				unitCache.clear();
+			}
+
+			unitCache.set(value, formatted);
 		} else {
-			formatted = String(value);
-		}
+			if (cache.has(value)) {
+				return cache.get(value);
+			}
 
-		if (cache.size === FORMAT_CACHE_MAX_SIZE) {
-			cache.clear();
-		}
+			if (type === TicksType.COMPACT) {
+				formatted = compactNumber(value);
+			} else {
+				formatted = String(value);
+			}
 
-		cache.set(value, formatted);
+			if (cache.size === FORMAT_CACHE_MAX_SIZE) {
+				cache.clear();
+			}
+
+			cache.set(value, formatted);
+		}
 
 		return formatted;
 	}
@@ -1235,11 +1277,11 @@ export default class Chart {
 		this._xTicks.length = 0;
 		this._xTicksSpacing = NaN;
 		this._xTicksAlphas.clear();
-		this._xTicksFormatCache.clear();
+		this._clearFormatCache(this._xTicksFormatCache, this._xTicksType);
 
 		this._yTicks.length = 0;
 		this._yTicksAlphas.clear();
-		this._yTicksFormatCache.clear();
+		this._clearFormatCache(this._yTicksFormatCache, this._yTicksType);
 	}
 
 	/**
@@ -1254,5 +1296,39 @@ export default class Chart {
 	 */
 	_calculatePixelsPerY() {
 		this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxScaleY - this._minScaleY);
+	}
+
+	/**
+	 * @param {TicksType} type
+	 * @return {FormatCache}
+	 * @private
+	 */
+	_createFormatCache(type) {
+		const cache = new Map();
+
+		if (type === TicksType.DATE) {
+			Object.values(DateUnit)
+				.forEach((unit) => {
+					cache.set(unit, new Map());
+				});
+		}
+
+		return cache;
+	}
+
+	/**
+	 * @param {FormatCache} cache
+	 * @param {TicksType} type
+	 * @private
+	 */
+	_clearFormatCache(cache, type) {
+		if (type === TicksType.DATE) {
+			Array.from(cache.keys())
+				.forEach((unit) => {
+					cache.get(unit).clear();
+				});
+		} else {
+			cache.clear();
+		}
 	}
 }
