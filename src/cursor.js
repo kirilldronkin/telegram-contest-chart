@@ -260,7 +260,11 @@ export default class Cursor {
 
 		drawnGraphs.forEach((graph) => {
 			const point = graph.getRange(minChartX, maxChartX)
-				.find((point) => !point.isInterpolated);
+				.find((point) =>
+					point.x >= minChartX &&
+					point.x <= maxChartX &&
+					point.isInterpolated === false
+				);
 
 			if (point) {
 				foundPointsByGraph.set(graph, point);

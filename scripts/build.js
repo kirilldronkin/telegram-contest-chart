@@ -22,7 +22,9 @@ const closureCompiler = new ClosureCompiler({
 });
 
 closureCompiler.run((exitCode, stdOut, stdError) => {
-	console.log(stdError);
+	if (stdError) {
+		console.log(stdError);
+	}
 
 	if (exitCode) {
 		console.log('Compilation failed!');
