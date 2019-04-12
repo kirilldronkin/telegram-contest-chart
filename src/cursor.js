@@ -1,10 +1,8 @@
-import Chart, {Axis, TicksType} from './chart.js';
-import Graph from './graph.js';
 import Point from './point.js';
-import Label from './ui/label.js';
-import {createDiv, clamp} from './utils.js';
-
-const {abs} = Math;
+import Graph from './graph.js';
+import Chart, {Axis, TicksType, ViewType} from './chart.js';
+import Toolbar from './ui/toolbar.js';
+import {createDivElement, clamp, debounce, throttle, getEventX, getEventY, formatDate, DateUnit} from './utils.js';
 
 /**
  * @const {number}
@@ -14,22 +12,10 @@ const LABEL_MARGIN = 10;
 /**
  * @const {number}
  */
-const MOVE_DEBOUNCE_TIME = 100;
+const LABEL_FILL_BACKPRESSURE_TIME = 100;
 
 export default class Cursor {
 	constructor() {
-		/**
-		 * @type {?HTMLElement}
-		 * @private
-		 */
-		this._area = null;
-
-		/**
-		 * @type {?ClientRect}
-		 * @private
-		 */
-		this._areaRect = null;
-
 		/**
 		 * @type {?Chart}
 		 * @private
@@ -37,46 +23,76 @@ export default class Cursor {
 		this._chart = null;
 
 		/**
-		 * @type {Array<HTMLDivElement>}
+		 * @type {?HTMLCanvasElement}
 		 * @private
 		 */
-		this._markers = [];
-
-		/**
-		 * @type {HTMLDivElement}
-		 * @private
-		 */
-		this._ruler = createDiv('cursor__ruler');
-
-		/**
-		 * @type {HTMLDivElement}
-		 * @private
-		 */
-		this._labelContainer = createDiv();
-
-		/**
-		 * @type {Label}
-		 * @private
-		 */
-		this._label = new Label(this._labelContainer);
+		this._canvas = null;
 
 		/**
 		 * @type {number}
 		 * @private
 		 */
-		this._touchRadiusX = NaN;
+		this._canvasWidth = NaN;
 
 		/**
 		 * @type {number}
 		 * @private
 		 */
-		this._lastMoveTime = NaN;
+		this._canvasHeight = NaN;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._toolbarContainer = createDivElement();
+
+		/**
+		 * @type {Toolbar}
+		 * @private
+		 */
+		this._toolbar = new Toolbar(this._toolbarContainer);
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._lastMoveX = NaN;
+
+		/**
+		 * @type {?(MouseEvent|TouchEvent)}
+		 * @private
+		 */
+		this._lastMoveEvent = null;
+
+		/**
+		 * @type {boolean}
+		 * @private
+		 */
+		this._isMyDrawing = false;
+
+		/**
+		 * @type {function(number, Map<Graph, Point>)}
+		 * @private
+		 */
+		this._fillToolbarThrottled = throttle(this._fillToolbar.bind(this), LABEL_FILL_BACKPRESSURE_TIME);
+
+		/**
+		 * @type {function(number, Map<Graph, Point>)}
+		 * @private
+		 */
+		this._fillToolbarDebounced = debounce(this._fillToolbar.bind(this), LABEL_FILL_BACKPRESSURE_TIME);
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
+		this._onDrawBinded = this._onDraw.bind(this);
 
 		/**
 		 * @type {function(Event)}
 		 * @private
 		 */
-		this._onMouseMoveBinded = this._onMouseMove.bind(this);
+		this._onMoveBinded = this._onMove.bind(this);
 
 		/**
 		 * @type {function()}
@@ -85,152 +101,124 @@ export default class Cursor {
 		this._onMouseLeaveBinded = this._onMouseLeave.bind(this);
 
 		/**
-		 * @type {function(Event)}
+		 * @type {function()}
 		 * @private
 		 */
-		this._onTouchStartBinded = this._onTouchStart.bind(this)
+		this._onTouchEndBinded = this._onTouchEnd.bind(this);
 	}
 
 	/**
 	 * @param {Chart} chart
 	 */
 	observe(chart) {
-		if (this._area) {
-			this._area.removeEventListener('mousemove', this._onMouseMoveBinded);
-			this._area.removeEventListener('mouseleave', this._onMouseLeaveBinded);
-			this._area.removeEventListener('touchstart', this._onTouchStartBinded);
+		if (this._canvas) {
+			this._chart.removeDrawListener(this._onDrawBinded);
+
+			this._canvas.removeChild(this._toolbarContainer);
+			this._canvas.removeEventListener('mousemove', this._onMoveBinded);
+			this._canvas.removeEventListener('touchmove', this._onMoveBinded);
+			this._canvas.removeEventListener('mouseleave', this._onMouseLeaveBinded);
+			this._canvas.removeEventListener('touchend', this._onTouchEndBinded);
 		}
-
-		this._area = /** @type {HTMLElement} */ (chart.getCanvas().parentElement);
-		this._areaRect = this._area.getBoundingClientRect();
-
-		this._area.addEventListener('mousemove', this._onMouseMoveBinded);
-		this._area.addEventListener('mouseleave', this._onMouseLeaveBinded);
-		this._area.addEventListener('touchstart', this._onTouchStartBinded);
 
 		this._chart = chart;
-	}
+		this._chart.addDrawListener(this._onDrawBinded);
 
-	clear() {
-		if (!this._markers.length) {
-			return;
-		}
+		this._canvas = chart.getCanvas();
+		this._canvasWidth = this._canvas.offsetWidth;
+		this._canvasHeight = this._canvas.offsetHeight;
 
-		this._removeAllMarkers();
-		this._removeRuler();
-		this._removeLabel()
+		this._canvas.parentElement.appendChild(this._toolbarContainer);
+		this._canvas.addEventListener('mousemove', this._onMoveBinded);
+		this._canvas.addEventListener('touchmove', this._onMoveBinded);
+		this._canvas.addEventListener('mouseleave', this._onMouseLeaveBinded);
+		this._canvas.addEventListener('touchend', this._onTouchEndBinded);
 	}
 
 	resize() {
-		if (this._area) {
-			this._areaRect = this._area.getBoundingClientRect();
+		if (this._canvas) {
+			this._canvasWidth = this._canvas.offsetWidth;
+			this._canvasHeight = this._canvas.offsetHeight;
 		}
 	}
 
 	/**
-	 * @param {Graph} graph
-	 * @param {Point} point
+	 * @param {number} x
+	 * @param {Map<Graph, Point>} graphToHighlightedPoint
+	 * @param {number} leftOffset
+	 * @param {number} topOffset
 	 * @private
 	 */
-	_addMarker(graph, point) {
-		const marker = createDiv('cursor__marker');
+	_showToolbar(x, graphToHighlightedPoint, leftOffset, topOffset) {
+		this._fillToolbarThrottled(x, graphToHighlightedPoint);
+		this._fillToolbarDebounced(x, graphToHighlightedPoint);
 
-		marker.style.borderColor = graph.color;
-		marker.style.left = `${this._chart.getPixelsByX(point.x)}px`;
-		marker.style.top = `${this._chart.getPixelsByY(point.y)}px`;
+		this._toolbarContainer.style.display = 'block';
 
-		this._area.appendChild(marker);
-		this._markers.push(marker);
+		const toolbarWidth = this._toolbarContainer.offsetWidth;
+		const toolbarHeight = this._toolbarContainer.offsetHeight;
+
+		const adjustedLeftOffset = clamp(leftOffset - (toolbarWidth + LABEL_MARGIN), 0, this._canvasWidth);
+		const adjustedTopOffset = clamp(topOffset - toolbarHeight, 0, this._canvasHeight - toolbarHeight);
+
+		this._toolbarContainer.style.transform = `translate(${adjustedLeftOffset}px, ${adjustedTopOffset}px)`;
 	}
 
 	/**
+	 * @param {number} x
+	 * @param {Map<Graph, Point>} graphToHighlightedPoint
 	 * @private
 	 */
-	_removeAllMarkers() {
-		this._markers.forEach((marker) => {
-			this._area.removeChild(marker);
-		});
-		this._markers.length = 0;
-	}
-
-	/**
-	 * @param {number} offset
-	 * @private
-	 */
-	_addRuler(offset) {
-		const chartTopPadding = this._chart.getTopPadding();
-		const chartBottomPadding = this._chart.getBottomPadding();
-
-		this._ruler.style.left = `${offset}px`;
-		this._ruler.style.top = `${chartTopPadding}px`;
-		this._ruler.style.height = `${this._areaRect.height - chartTopPadding - chartBottomPadding}px`;
-
-		this._area.appendChild(this._ruler);
-	}
-
-	/**
-	 * @private
-	 */
-	_removeRuler() {
-		if (this._area.contains(this._ruler)) {
-			this._area.removeChild(this._ruler);
-		}
-	}
-
-	/**
-	 * @param {number} offset
-	 * @param {Point} nearestPoint
-	 * @param {Map<Graph, Point>} pointsByGraph
-	 * @private
-	 */
-	_addLabel(offset, nearestPoint, pointsByGraph) {
+	_fillToolbar(x, graphToHighlightedPoint) {
 		let title;
 		if (this._chart.getAxisTicksType(Axis.X) === TicksType.DATE) {
-			title = new Date(nearestPoint.x).toLocaleDateString('en-us', {
-				'weekday': 'short',
-				'month': 'short',
-				'day': 'numeric',
-				'hour': 'numeric',
-				'minute': 'numeric'
-			});
+			// TODO: resolve the proper date unit and mixin day of week
+			title = formatDate(new Date(x), DateUnit.DAY);
 		} else {
-			title = this._chart.formatValue(nearestPoint.x, Axis.X);
+			title = String(x);
 		}
 
-		const items = Array.from(pointsByGraph.entries())
+		const items = Array.from(graphToHighlightedPoint.entries())
 			.sort((entryA, entryB) => entryB[1].y - entryA[1].y)
 			.map(([graph, point]) => ({
 				title: graph.name,
 				color: graph.color,
-				value: this._chart.formatValue(point.y, Axis.Y)
+				value: String(point.y)
 			}));
 
-		this._label.setTitle(title);
-		this._label.setItems(items);
-
-		this._area.appendChild(this._labelContainer);
-
-		const areaSize = this._areaRect.width;
-		const labelSize = this._labelContainer.offsetWidth;
-
-		let position;
-		if (offset + labelSize + LABEL_MARGIN <= areaSize) {
-			position = offset + LABEL_MARGIN;
-		} else if (labelSize + LABEL_MARGIN <= offset) {
-			position = offset - labelSize - LABEL_MARGIN;
-		} else {
-			position = clamp(offset - (labelSize / 2), 0, areaSize);
-		}
-
-		this._labelContainer.style.left = `${position}px`;
+		this._toolbar.setTitle(title);
+		this._toolbar.setItems(items);
 	}
 
 	/**
 	 * @private
 	 */
-	_removeLabel() {
-		if (this._area.contains(this._labelContainer)) {
-			this._area.removeChild(this._labelContainer);
+	_hideToolbar() {
+		this._toolbarContainer.style.display = 'none';
+	}
+
+	/**
+	 * @private
+	 */
+	_reset() {
+		this._hideToolbar();
+
+		this._chart.highlight(NaN);
+		this._chart.removeRulers();
+		this._chart.draw();
+
+		this._lastMoveX = NaN;
+		this._lastMoveEvent = null;
+	}
+
+	/**
+	 * @private
+	 */
+	_onDraw() {
+		if (!this._isMyDrawing) {
+			this._isMyDrawing = true;
+			this._reset();
+			this._isMyDrawing = false;
 		}
 	}
 
@@ -238,81 +226,69 @@ export default class Cursor {
 	 * @param {Event} event
 	 * @private
 	 */
-	_onMouseMove(event) {
-		event = /** @type {MouseEvent} */ (event);
+	_onMove(event) {
+		event = /** @type {MouseEvent|TouchEvent} */ (event);
 
-		const now = Date.now();
-		if (now - this._lastMoveTime < MOVE_DEBOUNCE_TIME) {
+		const canvasRect = this._canvas.getBoundingClientRect();
+		const canvasX = getEventX(event, this._canvas) - canvasRect.left;
+		const canvasY = getEventY(event, this._canvas) - canvasRect.top;
+
+		if (canvasX === this._lastMoveX) {
 			return;
 		}
 
-		const areaX = event.clientX - this._areaRect.left;
-		const areaY = event.clientY - this._areaRect.top;
+		this._chart.highlight(canvasX);
 
-		const toleranceX = this._touchRadiusX || this._chart.getGraphLineThickness();
-		const minChartX = this._chart.getXByPixels(areaX - toleranceX);
-		const maxChartX = this._chart.getXByPixels(areaX + toleranceX);
+		const graphs = this._chart.getGraphs();
+		const graphToHighlightedPoint = new Map();
 
-		const chartY = this._chart.getYByPixels(areaY);
-
-		const drawnGraphs = this._chart.getGraphs();
-		const foundPointsByGraph = new Map();
-
-		drawnGraphs.forEach((graph) => {
-			const point = graph.getRange(minChartX, maxChartX)
-				.find((point) =>
-					point.x >= minChartX &&
-					point.x <= maxChartX &&
-					point.isInterpolated === false
-				);
-
-			if (point) {
-				foundPointsByGraph.set(graph, point);
+		graphs.forEach((graph) => {
+			const highlightedPoint = this._chart.getGraphHighlightedPoint(graph);
+			if (highlightedPoint) {
+				graphToHighlightedPoint.set(graph, highlightedPoint);
 			}
 		});
 
-		if (foundPointsByGraph.size) {
-			this.clear();
+		const rulerXs = [];
 
-			let nearestPoint;
-			Array.from(foundPointsByGraph.entries())
-				.forEach(([graph, point]) => {
-					this._addMarker(graph, point);
+		Array.from(graphToHighlightedPoint.entries())
+			.forEach(([graph, point]) => {
+				const viewType = this._chart.getGraphViewType(graph);
+				const isRulerNeeded = viewType === ViewType.LINE || viewType === ViewType.AREA;
 
-					if (!nearestPoint || abs(chartY - point.y) < abs(chartY - nearestPoint.y)) {
-						nearestPoint = point;
-					}
-				});
+				if (isRulerNeeded && !rulerXs.includes(point.x)) {
+					rulerXs.push(point.x);
+				}
+			});
 
-			const offset = this._chart.getPixelsByX(nearestPoint.x);
+		this._chart.removeRulers();
+		rulerXs.forEach((x) => {
+			this._chart.addRuler(x);
+		});
 
-			this._addRuler(offset);
-			this._addLabel(offset, nearestPoint, foundPointsByGraph);
-		}
+		this._isMyDrawing = true;
+		this._chart.draw();
+		this._isMyDrawing = false;
 
-		this._touchRadiusX = NaN;
-		this._lastMoveTime = now;
-	}
+		this._showToolbar(this._chart.getXByPixels(canvasX), graphToHighlightedPoint, canvasX, canvasY);
 
-	/**
-	 * @param {Event} event
-	 * @private
-	 */
-	_onTouchStart(event) {
-		event = /** @type {TouchEvent} */ (event);
-
-		const canvas = this._chart.getCanvas();
-
-		const touch = Array.from(event.touches).find((touch) => touch.target === canvas);
-		if (touch) {
-			this._touchRadiusX = touch.radiusX || NaN;
-		}
+		this._lastMoveX = canvasX;
+		this._lastMoveEvent = event;
 	}
 
 	/**
 	 * @private
 	 */
 	_onMouseLeave() {
-		this.clear();
+		this._reset();
+	}
+
+	/**
+	 * @private
+	 */
+	_onTouchEnd() {
+		if (this._lastMoveEvent instanceof TouchEvent) {
+			this._reset();
+		}
 	}
 }

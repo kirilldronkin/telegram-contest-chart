@@ -1,68 +1,55 @@
-import Graph from './graph.js';
 import Point from './point.js';
+import Graph from './graph.js';
 import Transition, {Timing} from './transition.js';
+import IScale from './interfaces/i-scale.js';
+import IView, {Helpers as ViewHelpers} from './interfaces/i-view.js';
+import XLinearScale from './scales/x-linear.js';
+import YLinearScale from './scales/y-linear.js';
+import LineView, {Options as LineViewOptions} from './views/line.js';
+import BarView, {Options as BarViewOptions} from './views/bar.js';
 import {
-	identity,
 	unique,
-	clamp,
-	findMax,
-	findMin,
-	niceNumber,
+	pull,
+	merge,
 	compactNumber,
 	formatDate,
 	DateUnit,
-	hexToRGB,
-	createTextBackground
+	hexToRGB
 } from './utils.js';
 
-const {ceil, floor, min} = Math;
-
-/**
- * @const {string}
- */
-const FONT = 'Arial, Helvetica, Verdana, sans-serif';
+const {min, max} = Math;
 
 /**
  * @const {number}
  */
-const EMPTY_TEXT_SIZE = 20;
+const GRAPH_FADE_DURATION = 200;
 
 /**
  * @const {number}
  */
-const TICK_SIZE = 15;
+const Y_AXIS_SCALE_DURATION = 200;
 
 /**
  * @const {number}
  */
-const TICK_TEXT_BOTTOM_MARGIN = 10;
-
-/**
- * @const {number}
- */
-const TICK_LINE_THICKNESS = 1;
-
-/**
- * @const {number}
- */
-const FORMAT_CACHE_MAX_SIZE = 1000;
-
-/**
- * @const {number}
- */
-const TRANSITION_DURATION = 350;
-
-/**
- * @typedef {Map<(number|DateUnit), (string|Map<number, string>)>}
- */
-let FormatCache;
+const MAX_TICKS_FORMATTER_CACHE_SIZE = 1000;
 
 /**
  * @enum {string}
  */
 export const Axis = {
 	X: 'x',
-	Y: 'y'
+	Y: 'y',
+	Y_SECONDARY: 'y-secondary'
+};
+
+/**
+ * @enum {string}
+ */
+export const ViewType = {
+	LINE: 'line',
+	BAR: 'bar',
+	AREA: 'area'
 };
 
 /**
@@ -76,51 +63,202 @@ export const TicksType = {
 };
 
 /**
- * @enum {string}
+ * @typedef {{
+ *     line: (LineViewOptions|undefined),
+ *     bar: (BarViewOptions|undefined)
+ * }}
  */
-export const TicksScale = {
-	EXTREMUM: 'extremum',
-	NICE: 'nice'
+let ViewsOptions;
+
+/**
+ * @typedef {{
+ *     top: number,
+ *     right: number,
+ *     bottom: number,
+ *     left: number
+ * }}
+ */
+let PaddingOptions;
+
+/**
+ * @typedef {{
+ *     top: (number|undefined),
+ *     right: (number|undefined),
+ *     bottom: (number|undefined),
+ *     left: (number|undefined)
+ * }}
+ */
+let PaddingOptionsPartial;
+
+/**
+ * @typedef {{
+ *     type: TicksType,
+ *     count: number,
+ *     color: string,
+ *     alpha: number,
+ *     size: number,
+ *     font: string
+ * }}
+ */
+let XTicksOptions;
+
+/**
+ * @typedef {{
+ *     type: (TicksType|undefined),
+ *     count: (number|undefined),
+ *     color: (string|undefined),
+ *     alpha: (number|undefined),
+ *     size: (number|undefined),
+ *     font: (string|undefined)
+ * }}
+ */
+let XTicksOptionsPartial;
+
+/**
+ * @typedef {{
+ *     type: TicksType,
+ *     count: number,
+ *     color: string,
+ *     alpha: number,
+ *     size: number,
+ *     font: string,
+ *     nice: boolean
+ * }}
+ */
+let YTicksOptions;
+
+/**
+ * @typedef {{
+ *     type: (TicksType|undefined),
+ *     count: (number|undefined),
+ *     color: (string|undefined),
+ *     alpha: (number|undefined),
+ *     size: (number|undefined),
+ *     font: (string|undefined),
+ *     nice: (boolean|undefined)
+ * }}
+ */
+let YTicksOptionsPartial;
+
+/**
+ * @typedef {{
+ *     thickness: number,
+ *     color: string,
+ *     alpha: number
+ * }}
+ */
+let LineOptions;
+
+/**
+ * @typedef {{
+ *     thickness: (number|undefined),
+ *     color: (string|undefined),
+ *     alpha: (number|undefined)
+ * }}
+ */
+let LineOptionsPartial;
+
+/**
+ * @typedef {{
+ *     text: string,
+ *     color: string,
+ *     size: number,
+ *     font: string
+ * }}
+ */
+let EmptyTextOptions;
+
+/**
+ * @typedef {{
+ *     text: (string|undefined),
+ *     color: (string|undefined),
+ *     size: (number|undefined),
+ *     font: (string|undefined)
+ * }}
+ */
+let EmptyTextOptionsPartial;
+
+const defaultViewsOptions = {
+	line: undefined,
+	bar: undefined
+};
+
+const defaultPaddingOptions = {
+	top: 0,
+	right: 0,
+	bottom: 0,
+	left: 0
+};
+
+const defaultXTicksOptions = {
+	type: TicksType.DECIMAL,
+	count: 10,
+	color: '#000000',
+	alpha: 1,
+	size: 10,
+	font: 'Arial, Helvetica, sans-serif'
+};
+
+const defaultYTicksOptions = {
+	type: TicksType.DECIMAL,
+	count: 10,
+	color: '#000000',
+	alpha: 1,
+	size: 10,
+	font: 'Arial, Helvetica, sans-serif',
+	nice: true
+};
+
+const defaultLineOptions = {
+	thickness: 1,
+	color: '#000000',
+	alpha: 1
+};
+
+const defaultEmptyTextOptions = {
+	text: '',
+	color: '#000000',
+	size: 10,
+	font: 'Arial, Helvetica, sans-serif'
 };
 
 export default class Chart {
 	/**
 	 * @param {HTMLCanvasElement} canvas
 	 * @param {{
-	 *     xTicksType: (TicksType|undefined),
-	 *     xTicksBackground: (boolean|undefined),
-	 *     yTicksType: (TicksType|undefined),
-	 *     yTicksScale: (TicksScale|undefined),
-	 *     yTicksBackground: (boolean|undefined),
-	 *     topPadding: (number|undefined),
-	 *     bottomPadding: (number|undefined),
-	 *     leftPadding: (number|undefined),
-	 *     rightPadding: (number|undefined),
-	 *     graphLineThickness: (number|undefined),
-	 *     ticksCount: (number|undefined),
-	 *     tickLineColor: (string|undefined),
-	 *     tickTextColor: (string|undefined),
-	 *     tickBackgroundColor: (string|undefined),
-	 *     emptyText: (string|undefined)
+	 *     viewTypes: (Array<ViewType>|undefined),
+	 *     viewsOptions: (ViewsOptions|undefined),
+	 *     paddingOptions: (PaddingOptionsPartial|undefined),
+	 *     xTicksOptions: (XTicksOptionsPartial|undefined),
+	 *     yTicksOptions: (YTicksOptionsPartial|undefined),
+	 *     ySecondaryViews: (Array<number>|undefined),
+	 *     ySecondaryTicksOptions: (YTicksOptionsPartial|undefined),
+	 *     gridOptions: (LineOptionsPartial|undefined),
+	 *     rulerOptions: (LineOptionsPartial|undefined),
+	 *     emptyTextOptions: (EmptyTextOptionsPartial|undefined)
 	 * }=} opt
 	 */
 	constructor(canvas, {
-		xTicksType = TicksType.DECIMAL,
-		xTicksBackground = false,
-		yTicksType = TicksType.DECIMAL,
-		yTicksScale = TicksScale.EXTREMUM,
-		yTicksBackground = false,
-		topPadding = 0,
-		bottomPadding = 0,
-		leftPadding = 0,
-		rightPadding = 0,
-		graphLineThickness = 1,
-		ticksCount = 10,
-		tickLineColor = '#000000',
-		tickTextColor = '#000000',
-		tickBackgroundColor = '#000000',
-		emptyText = ''
+		viewTypes = [],
+		viewsOptions = {},
+		paddingOptions = {},
+		xTicksOptions = {},
+		yTicksOptions = {},
+		ySecondaryViews = [],
+		ySecondaryTicksOptions = {},
+		gridOptions = {},
+		rulerOptions = {},
+		emptyTextOptions = {}
 	} = {}) {
+		viewsOptions = /** @type {ViewsOptions} */ (merge(defaultViewsOptions, viewsOptions));
+		paddingOptions = /** @type {PaddingOptions} */ (merge(defaultPaddingOptions, paddingOptions));
+		xTicksOptions = /** @type {XTicksOptions} */ (merge(defaultXTicksOptions, xTicksOptions));
+		yTicksOptions = /** @type {YTicksOptions} */ (merge(defaultYTicksOptions, yTicksOptions));
+		ySecondaryTicksOptions = /** @type {YTicksOptions} */ (merge(defaultYTicksOptions, ySecondaryTicksOptions));
+		gridOptions = /** @type {LineOptions} */ (merge(defaultLineOptions, gridOptions));
+		rulerOptions = /** @type {LineOptions} */ (merge(defaultLineOptions, rulerOptions));
+		emptyTextOptions = /** @type {EmptyTextOptions} */ (merge(defaultEmptyTextOptions, emptyTextOptions));
+
 		/**
 		 * @type {HTMLCanvasElement}
 		 * @private
@@ -134,64 +272,48 @@ export default class Chart {
 		this._context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
 
 		/**
-		 * @type {number}
+		 * @type {IScale}
 		 * @private
 		 */
-		this._topPadding = topPadding;
+		this._xScale = new XLinearScale();
 
 		/**
-		 * @type {number}
+		 * @type {IScale}
 		 * @private
 		 */
-		this._bottomPadding = bottomPadding;
+		this._yScale = new YLinearScale({
+			nice: yTicksOptions.nice
+		});
 
 		/**
-		 * @type {number}
+		 * @type {?IScale}
 		 * @private
 		 */
-		this._leftPadding = leftPadding;
+		this._ySecondaryScale = null;
+
+		if (ySecondaryViews.length) {
+			this._ySecondaryScale = new YLinearScale({
+				nice: ySecondaryTicksOptions.nice
+			});
+		}
 
 		/**
-		 * @type {number}
+		 * @type {Array<IView>}
 		 * @private
 		 */
-		this._rightPadding = rightPadding;
+		this._views = this._createViews(viewTypes, viewsOptions, ySecondaryViews);
 
 		/**
-		 * @type {number}
+		 * @type {Map<IView, Array<Graph>>}
 		 * @private
 		 */
-		this._graphLineThickness = graphLineThickness;
+		this._viewToGraphs = new Map(this._views.map((view) => [view, []]));
 
 		/**
-		 * @type {number}
+		 * @type {ViewHelpers}
 		 * @private
 		 */
-		this._ticksCount = ticksCount;
-
-		/**
-		 * @type {string}
-		 * @private
-		 */
-		this._tickLineColor = tickLineColor;
-
-		/**
-		 * @type {string}
-		 * @private
-		 */
-		this._tickTextColor = tickTextColor;
-
-		/**
-		 * @type {string}
-		 * @private
-		 */
-		this._tickBackgroundColor = tickBackgroundColor;
-
-		/**
-		 * @type {string}
-		 * @private
-		 */
-		this._emptyText = emptyText;
+		this._viewHelpers = this._createViewHelpers();
 
 		/**
 		 * @type {Array<Graph>}
@@ -203,25 +325,37 @@ export default class Chart {
 		 * @type {Array<Graph>}
 		 * @private
 		 */
-		this._removingGraphs = [];
+		this._inactiveGraphs = [];
+
+		/**
+		 * @type {Map<Graph, IView>}
+		 * @private
+		 */
+		this._graphToView = new Map();
 
 		/**
 		 * @type {Map<Graph, Array<Point>>}
 		 * @private
 		 */
-		this._graphsRanges = new Map();
+		this._graphToRange = new Map();
 
 		/**
 		 * @type {Map<Graph, number>}
 		 * @private
 		 */
-		this._graphsAlphas = new Map();
+		this._graphToVisibility = new Map();
 
 		/**
 		 * @type {Map<Graph, Transition>}
 		 * @private
 		 */
-		this._graphsTransitions = new Map();
+		this._graphToTransition = new Map();
+
+		/**
+		 * @type {Map<Graph, Point>}
+		 * @private
+		 */
+		this._graphToHighlightedPoint = new Map();
 
 		/**
 		 * @type {Array<number>}
@@ -230,34 +364,16 @@ export default class Chart {
 		this._xTicks = [];
 
 		/**
-		 * @type {TicksType}
+		 * @type {XTicksOptions}
 		 * @private
 		 */
-		this._xTicksType = xTicksType;
-
-		/**
-		 * @type {boolean}
-		 * @private
-		 */
-		this._xTicksBackround = xTicksBackground;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._xTicksSpacing = NaN;
+		this._xTicksOptions = xTicksOptions;
 
 		/**
 		 * @type {Map<number, number>}
 		 * @private
 		 */
-		this._xTicksAlphas = new Map();
-
-		/**
-		 * @type {FormatCache}
-		 * @private
-		 */
-		this._xTicksFormatCache = this._createFormatCache(this._xTicksType);
+		this._xTickToVisibility = new Map();
 
 		/**
 		 * @type {Array<number>}
@@ -266,347 +382,276 @@ export default class Chart {
 		this._yTicks = [];
 
 		/**
-		 * @type {TicksType}
+		 * @type {YTicksOptions}
 		 * @private
 		 */
-		this._yTicksType = yTicksType;
-
-		/**
-		 * @type {TicksScale}
-		 * @private
-		 */
-		this._yTicksScale = yTicksScale;
-
-		/**
-		 * @type {boolean}
-		 * @private
-		 */
-		this._yTicksBackround = yTicksBackground;
+		this._yTicksOptions = yTicksOptions;
 
 		/**
 		 * @type {Map<number, number>}
 		 * @private
 		 */
-		this._yTicksAlphas = new Map();
+		this._yTickToVisibility = new Map();
 
 		/**
-		 * @type {FormatCache}
+		 * @type {Array<number>}
 		 * @private
 		 */
-		this._yTicksFormatCache = this._createFormatCache(this._yTicksType);
+		this._ySecondaryTicks = [];
 
 		/**
-		 * @type {?Transition}
+		 * @type {YTicksOptions}
 		 * @private
 		 */
-		this._yScaleTransition = null;
+		this._ySecondaryTicksOptions = ySecondaryTicksOptions;
 
 		/**
-		 * @type {number}
+		 * @type {Map<number, number>}
 		 * @private
 		 */
-		this._width = NaN;
+		this._ySecondaryTickToVisibility = new Map();
 
 		/**
-		 * @type {number}
+		 * @type {LineOptions}
 		 * @private
 		 */
-		this._height = NaN;
+		this._gridOptions = gridOptions;
 
 		/**
-		 * @type {number}
+		 * @type {Array<number>}
 		 * @private
 		 */
-		this._pixelsPerX = NaN;
+		this._rulerXs = [];
 
 		/**
-		 * @type {number}
+		 * @type {LineOptions}
 		 * @private
 		 */
-		this._pixelsPerY = NaN;
+		this._rulerOptions = rulerOptions;
 
 		/**
-		 * @type {number}
+		 * @type {EmptyTextOptions}
 		 * @private
 		 */
-		this._minX = NaN;
+		this._emptyTextOptions = emptyTextOptions;
 
 		/**
-		 * @type {number}
+		 * @type {TicksFormatter}
 		 * @private
 		 */
-		this._minY = NaN;
+		this._ticksFormatter = new TicksFormatter(MAX_TICKS_FORMATTER_CACHE_SIZE);
 
 		/**
-		 * @type {number}
+		 * @type {Array<function()>}
 		 * @private
 		 */
-		this._minRangeX = NaN;
+		this._drawListeners = [];
 
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._minRangeY = NaN;
+		this._xScale.setTicksCount(xTicksOptions.count);
+		this._xScale.setPadding([paddingOptions.left, paddingOptions.right]);
 
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._minScaleX = NaN;
+		this._yScale.setTicksCount(yTicksOptions.count);
+		this._yScale.setPadding([paddingOptions.top, paddingOptions.bottom]);
+		this._yScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
 
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._minScaleY = NaN;
+		this._yScale.setTransitionListeners({
+			onStart: this._onYScaleTransitionStart.bind(this, this._yScale),
+			onUpdate: this._draw.bind(this),
+			onComplete: this._updateYTicks.bind(this, this._yScale)
+		});
 
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxX = NaN;
+		if (this._ySecondaryScale) {
+			this._ySecondaryScale.setTicksCount(ySecondaryTicksOptions.count);
+			this._ySecondaryScale.setPadding([paddingOptions.top, paddingOptions.bottom]);
+			this._ySecondaryScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
 
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxY = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxRangeX = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxRangeY = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxScaleX = NaN;
-
-		/**
-		 * @type {number}
-		 * @private
-		 */
-		this._maxScaleY = NaN;
+			this._ySecondaryScale.setTransitionListeners({
+				onStart: this._onYScaleTransitionStart.bind(this, this._ySecondaryScale),
+				onUpdate: this._draw.bind(this),
+				onComplete: this._updateYTicks.bind(this, this._ySecondaryScale)
+			});
+		}
 	}
 
 	/**
 	 * @param {Graph} graph
+	 * @param {number=} index
+	 * @param {number=} viewIndex
 	 */
-	addGraph(graph) {
+	addGraph(graph, index = NaN, viewIndex = 0) {
+		const view = this._views[viewIndex];
+		if (!view) {
+			throw new Error(`Unknown view with index ${viewIndex}`);
+		}
+
+		const graphView = this._graphToView.get(graph);
+		if (graphView && graphView !== view) {
+			throw new Error('Graph is already added to another view');
+		}
+
+		const viewGraphs = this._viewToGraphs.get(view);
+		if (!isNaN(index) && viewGraphs[index] && viewGraphs[index] !== graph) {
+			throw new Error(`Index ${index} is already taken`);
+		}
+
 		if (!this._graphs.includes(graph)) {
 			this._graphs.push(graph);
 		}
 
-		if (!this._graphsAlphas.has(graph)) {
-			this._graphsAlphas.set(graph, 0);
+		if (!this._graphToVisibility.has(graph)) {
+			this._graphToVisibility.set(graph, 0);
 		}
 
-		const range = isNaN(this._minRangeX) || isNaN(this._maxRangeX) ?
-			graph.points :
-			graph.getRange(this._minRangeX, this._maxRangeX);
-
-		this._graphsRanges.set(graph, range);
-
-		const {x: minX, y: minY} = graph.getMin();
-		if (isNaN(this._minX) || minX < this._minX) {
-			this._minX = minX;
-		}
-		if (isNaN(this._minY) || minY < this._minY) {
-			this._minY = minY;
+		if (viewGraphs.includes(graph)) {
+			delete viewGraphs[viewGraphs.indexOf(graph)];
 		}
 
-		const {x: maxX, y: maxY} = graph.getMax();
-		if (isNaN(this._maxX) || maxX > this._maxX) {
-			this._maxX = maxX;
-		}
-		if (isNaN(this._maxY) || maxY > this._maxY) {
-			this._maxY = maxY;
-		}
+		this._graphToView.set(graph, view);
+		this._graphToRange.set(graph, this._getGraphRange(graph));
 
-		const minRangeY = findMin(this._graphsRanges.get(graph), (point) => point.y);
-		if (isNaN(this._minRangeY) || minRangeY < this._minRangeY) {
-			this._minRangeY = minRangeY;
+		if (isNaN(index)) {
+			viewGraphs.push(graph);
+		} else {
+			viewGraphs[index] = graph;
 		}
 
-		const maxRangeY = findMax(this._graphsRanges.get(graph), (point) => point.y);
-		if (isNaN(this._maxRangeY) || maxRangeY > this._maxRangeY) {
-			this._maxRangeY = maxRangeY;
-		}
+		const otherGraphs = this._getActiveGraphs()
+			.filter((someGraph) => someGraph !== graph);
 
-		const transitionIntervals = [{
-			from: this._graphsAlphas.get(graph), to: 1
-		}];
+		const otherViewGraphs = this._getViewActiveGraphs(view)
+			.filter((someGraph) => someGraph !== graph);
 
-		const onTransitionProgress = ([alpha]) => {
-			this._graphsAlphas.set(graph, alpha);
-		};
+		view.addGraphToXScale(graph, otherGraphs, this._viewHelpers);
+		view.addGraphToYScale(graph, otherViewGraphs, this._viewHelpers);
 
-		const onTransitionComplete = () => {
-			this._graphsTransitions.delete(graph);
-		};
-
-		const onTransitionUpdate = () => {
-			this._draw();
-		};
-
-		const transition = new Transition(
-			transitionIntervals,
-			TRANSITION_DURATION,
-			Timing.EASE_OUT,
-			onTransitionProgress,
-			onTransitionComplete,
-			onTransitionUpdate
-		);
-
-		const currentTransition = this._graphsTransitions.get(graph);
-		if (currentTransition && currentTransition.isActive()) {
-			currentTransition.stop();
-		}
-
-		this._graphsTransitions.set(graph, transition);
+		this._stopCurrentGraphTransition(graph);
+		this._setupAddingGraphTransition(graph);
 	}
 
 	/**
 	 * @param {Graph} graph
 	 */
 	removeGraph(graph) {
-		const otherGraphs = this._graphs.filter((someGraph) =>
-			someGraph !== graph && !this._removingGraphs.includes(someGraph)
-		);
-		const otherRanges = otherGraphs.map((graph) => this._graphsRanges.get(graph));
+		const view = this._graphToView.get(graph);
 
-		const {x: minX, y: minY} = graph.getMin();
-		if (minX === this._minX || minY === this._minY) {
-			const otherMins = otherGraphs.map((graph) => graph.getMin());
+		const otherGraphs = this._getActiveGraphs()
+			.filter((someGraph) => someGraph !== graph);
 
-			const newMinX = findMin(otherMins, (({x}) => x));
-			if (newMinX !== this._minX) {
-				this._minX = newMinX;
-			}
+		const otherViewGraphs = this._getViewActiveGraphs(view)
+			.filter((someGraph) => someGraph !== graph);
 
-			const newMinY = findMin(otherMins, (({y}) => y));
-			if (newMinY !== this._minY) {
-				this._minY = newMinY;
-			}
-		}
+		view.removeGraphFromXScale(graph, otherGraphs, this._viewHelpers);
+		view.removeGraphFromYScale(graph, otherViewGraphs, this._viewHelpers);
 
-		const {x: maxX, y: maxY} = graph.getMax();
-		if (maxX === this._maxX || maxY === this._maxY) {
-			const otherMaxes = otherGraphs.map((graph) => graph.getMax());
-
-			const newMaxX = findMax(otherMaxes, (({x}) => x));
-			if (newMaxX !== this._maxX) {
-				this._maxX = newMaxX;
-			}
-
-			const newMaxY = findMax(otherMaxes, (({y}) => y));
-			if (newMaxY !== this._maxY) {
-				this._maxY = newMaxY;
-			}
-		}
-
-		const minRangeY = findMin(this._graphsRanges.get(graph), (point) => point.y);
-		if (minRangeY === this._minRangeY) {
-			const otherMins = otherRanges.map((range) => findMin(range, (point) => point.y));
-
-			const newMinY = findMin(otherMins, identity);
-			if (newMinY !== this._minRangeY) {
-				this._minRangeY = newMinY;
-			}
-		}
-
-		const maxRangeY = findMax(this._graphsRanges.get(graph), (point) => point.y);
-		if (maxRangeY === this._maxRangeY) {
-			const otherMaxes = otherRanges.map((range) => findMax(range, (point) => point.y));
-
-			const newMaxY = findMax(otherMaxes, identity);
-			if (newMaxY !== this._maxRangeY) {
-				this._maxRangeY = newMaxY;
-			}
-		}
-
-		const transitionIntervals = [{
-			from: this._graphsAlphas.get(graph), to: 0
-		}];
-
-		const onTransitionProgress = ([alpha]) => {
-			this._graphsAlphas.set(graph, alpha);
-		};
-
-		const onTransitionComplete = () => {
-			this._graphs.splice(this._graphs.indexOf(graph), 1);
-			this._removingGraphs.splice(this._removingGraphs.indexOf(graph), 1);
-
-			this._graphsAlphas.delete(graph);
-			this._graphsRanges.delete(graph);
-			this._graphsTransitions.delete(graph);
-		};
-
-		const onTransitionUpdate = () => {
-			this._draw();
-		};
-
-		const onTransitionCancel = () => {
-			this._removingGraphs.splice(this._removingGraphs.indexOf(graph), 1);
-		};
-
-		const transition = new Transition(
-			transitionIntervals,
-			TRANSITION_DURATION,
-			Timing.EASE_IN,
-			onTransitionProgress,
-			onTransitionComplete,
-			onTransitionUpdate,
-			onTransitionCancel
-		);
-
-		const currentTransition = this._graphsTransitions.get(graph);
-		if (currentTransition && currentTransition.isActive()) {
-			currentTransition.stop();
-		}
-
-		if (isNaN(this._minX) && isNaN(this._maxX)) {
-			this._stopAllTransitions();
+		if (this._xScale.isEmpty()) {
 			this._clearGraphs();
-		} else {
-			this._graphsTransitions.set(graph, transition);
-			this._removingGraphs.push(graph);
+			this._stopTransitions();
+
+			return;
+		}
+
+		this._stopCurrentGraphTransition(graph);
+		this._setupRemovingGraphTransition(graph);
+	}
+
+	/**
+	 * @param {number} start
+	 * @param {number} end
+	 */
+	setRange(start, end) {
+		this._xScale.setRangeStart(start);
+		this._xScale.setRangeEnd(end);
+
+		this._yScale.setRangeStart(NaN);
+		this._yScale.setRangeEnd(NaN);
+
+		if (this._ySecondaryScale) {
+			this._ySecondaryScale.setRangeStart(NaN);
+			this._ySecondaryScale.setRangeEnd(NaN);
+		}
+
+		this._graphs.forEach((graph) => {
+			this._graphToRange.set(graph, this._getGraphRange(graph));
+		});
+
+		this._views.forEach((view) => {
+			view.updateYScaleRange(this._getViewActiveGraphs(view), this._viewHelpers);
+		});
+	}
+
+	/**
+	 * @param {ViewsOptions} options
+	 */
+	setViewsOptions(options) {
+		this._views.forEach((view) => {
+			if (view instanceof LineView) {
+				view.setOptions(options.line);
+			}
+
+			if (view instanceof BarView) {
+				view.setOptions(options.bar);
+			}
+		});
+	}
+
+	/**
+	 * @param {Axis} axis
+	 * @param {number} count
+	 */
+	setTicksCount(axis, count) {
+		if (axis === Axis.X) {
+			this._clearXTicks();
+			this._xScale.setTicksCount(count);
+		}
+
+		if (axis === Axis.Y) {
+			this._clearYTicks();
+			this._yScale.setTicksCount(count);
+		}
+
+		if (axis === Axis.Y_SECONDARY && this._ySecondaryScale) {
+			this._clearYSecondaryTicks();
+			this._ySecondaryScale.setTicksCount(count);
 		}
 	}
 
-	clear() {
-		this._stopAllTransitions();
+	/**
+	 * @param {Axis} axis
+	 * @param {string} color
+	 */
+	setTicksColor(axis, color) {
+		if (axis === Axis.X) {
+			this._xTicksOptions.color = color;
+		}
 
-		this._clearGraphs();
-		this._clearTicks();
+		if (axis === Axis.Y) {
+			this._yTicksOptions.color = color;
+		}
 
-		this._width = NaN;
-		this._height = NaN;
-		this._pixelsPerX = NaN;
-		this._pixelsPerY = NaN;
+		if (axis === Axis.Y_SECONDARY) {
+			this._ySecondaryTicksOptions.color = color;
+		}
+	}
 
-		this._minX = NaN;
-		this._minY = NaN;
-		this._minRangeX = NaN;
-		this._minRangeY = NaN;
-		this._minScaleX = NaN;
-		this._minScaleY = NaN;
+	/**
+	 * @param {string} color
+	 */
+	setGridColor(color) {
+		this._gridOptions.color = color;
+	}
 
-		this._maxX = NaN;
-		this._maxY = NaN;
-		this._maxRangeX = NaN;
-		this._maxRangeY = NaN;
-		this._maxScaleX = NaN;
-		this._maxScaleY = NaN;
+	/**
+	 * @param {string} color
+	 */
+	setEmptyTextColor(color) {
+		this._emptyTextOptions.color = color;
+	}
+
+	/**
+	 * @param {string} color
+	 */
+	setRulerColor(color) {
+		this._rulerOptions.color = color;
 	}
 
 	/**
@@ -624,24 +669,31 @@ export default class Chart {
 	}
 
 	/**
-	 * @return {number}
+	 * @param {Graph} graph
+	 * @return {ViewType}
 	 */
-	getGraphLineThickness() {
-		return this._graphLineThickness;
+	getGraphViewType(graph) {
+		if (!this._graphs.includes(graph)) {
+			throw new Error('Unknown graph');
+		}
+
+		const view = this._graphToView.get(graph);
+
+		if (view instanceof LineView) {
+			return ViewType.LINE;
+		} else if (view instanceof BarView) {
+			return ViewType.BAR;
+		}
+
+		throw new Error('Unknown view type');
 	}
 
 	/**
-	 * @return {number}
+	 * @param {Graph} graph
+	 * @return {?Point}
 	 */
-	getTopPadding() {
-		return this._topPadding;
-	}
-
-	/**
-	 * @return {number}
-	 */
-	getBottomPadding() {
-		return this._bottomPadding;
+	getGraphHighlightedPoint(graph) {
+		return this._graphToHighlightedPoint.get(graph) || null;
 	}
 
 	/**
@@ -649,7 +701,7 @@ export default class Chart {
 	 * @return {TicksType}
 	 */
 	getAxisTicksType(axis) {
-		return axis === Axis.X ? this._xTicksType : this._yTicksType;
+		return axis === Axis.X ? this._xTicksOptions.type : this._yTicksOptions.type;
 	}
 
 	/**
@@ -657,19 +709,9 @@ export default class Chart {
 	 * @return {number}
 	 */
 	getXByPixels(pixels) {
-		let x = this._minScaleX + ((pixels - this._leftPadding) / this._pixelsPerX);
-
-		return clamp(x, this._minScaleX, this._maxScaleX);
-	}
-
-	/**
-	 * @param {number} pixels
-	 * @return {number}
-	 */
-	getYByPixels(pixels) {
-		let y = this._minScaleY + ((this._height - this._bottomPadding - pixels) / this._pixelsPerY);
-
-		return clamp(y, this._minScaleY, this._maxScaleY);
+		return this._xScale.getValueByPixels(pixels, {
+			fit: true
+		});
 	}
 
 	/**
@@ -677,359 +719,350 @@ export default class Chart {
 	 * @return {number}
 	 */
 	getPixelsByX(x) {
-		return this._leftPadding + this._pixelsPerX * (x - this._minScaleX);
-	}
-
-	/**
-	 * @param {number} y
-	 * @return {number}
-	 */
-	getPixelsByY(y) {
-		return this._height - this._bottomPadding - this._pixelsPerY * (y - this._minScaleY);
-	}
-
-	/**
-	 * @param {number} thickness
-	 */
-	setGraphLineThickness(thickness) {
-		this._graphLineThickness = thickness;
-	}
-
-	/**
-	 * @param {number} count
-	 */
-	setTicksCount(count) {
-		this._ticksCount = count;
-
-		this._minScaleX = NaN;
-		this._minScaleY = NaN;
-
-		this._maxScaleX = NaN;
-		this._maxScaleY = NaN;
-
-		this._clearTicks();
-	}
-
-	/**
-	 * @param {string} color
-	 */
-	setTickLineColor(color) {
-		this._tickLineColor = color;
-	}
-
-	/**
-	 * @param {string} color
-	 */
-	setTickTextColor(color) {
-		this._tickTextColor = color;
-	}
-
-	/**
-	 * @param {string} color
-	 */
-	setTickBackgroundColor(color) {
-		this._tickBackgroundColor = color;
+		return this._xScale.getPixelsByValue(x, {
+			fit: true
+		});
 	}
 
 	/**
 	 * @return {{start: number, end: number}}
 	 */
 	getRange() {
-		return {
-			start: isNaN(this._minRangeX) ?
-				this._minX :
-				this._minRangeX,
+		const isRangeGiven = this._xScale.isRangeGiven();
 
-			end: isNaN(this._maxRangeX) ?
-				this._maxX :
-				this._maxRangeX
+		return {
+			start: isRangeGiven ?
+				this._xScale.getRangeStart() :
+				this._xScale.getStart(),
+
+			end: isRangeGiven ?
+				this._xScale.getRangeEnd() :
+				this._xScale.getEnd()
 		};
 	}
 
 	/**
-	 * @param {number} startX
-	 * @param {number} endX
+	 * @param {number} x
 	 */
-	setRange(startX, endX) {
-		this._minRangeX = startX;
-		this._maxRangeX = endX;
+	addRuler(x) {
+		this._rulerXs.push(x);
+	}
 
-		this._minRangeY = NaN;
-		this._maxRangeY = NaN;
-
-		this._graphs.forEach((graph) => {
-			const range = graph.getRange(startX, endX);
-
-			this._graphsRanges.set(graph, range);
-
-			if (this._removingGraphs.includes(graph)) {
-				return;
-			}
-
-			const minY = findMin(range, (point) => point.y);
-			const maxY = findMax(range, (point) => point.y);
-
-			if (isNaN(this._minRangeY) || minY < this._minRangeY) {
-				this._minRangeY = minY;
-			}
-
-			if (isNaN(this._maxRangeY) || maxY > this._maxRangeY) {
-				this._maxRangeY = maxY;
-			}
-		});
+	removeRulers() {
+		this._rulerXs.length = 0;
 	}
 
 	/**
-	 * @param {number} value
-	 * @param {Axis} axis
-	 * @return {string}
+	 * @param {function()} listener
 	 */
-	formatValue(value, axis) {
-		const type = axis === Axis.X ? this._xTicksType : this._yTicksType;
-		const cache = axis === Axis.X ? this._xTicksFormatCache : this._yTicksFormatCache;
-
-		let formatted;
-		if (type === TicksType.DATE) {
-			const spacing = axis === Axis.X ?
-				(this._maxScaleX - this._minScaleX) / this._ticksCount :
-				(this._maxScaleY - this._minScaleY) / this._yTicks.length;
-
-			const msInSecond = 1000;
-			const msInMinute = msInSecond * 60;
-			const msInHour = msInMinute * 60;
-			const msInDay = msInHour * 24;
-			const msInMonth = msInDay * 30;
-			const msInYear = msInMonth * 12;
-
-			let unit;
-			if (spacing / msInYear >= 1) {
-				unit = DateUnit.YEAR;
-			} else if (spacing / msInMonth >= 1) {
-				unit = DateUnit.MONTH;
-			} else if (spacing / msInDay >= 1) {
-				unit = DateUnit.DAY;
-			} else if (spacing / msInHour >= 1) {
-				unit = DateUnit.HOUR;
-			} else if (spacing / msInMinute >= 1) {
-				unit = DateUnit.MINUTE;
-			} else if (spacing / msInSecond >= 1) {
-				unit = DateUnit.SECOND;
-			}
-
-			const unitCache = cache.get(unit);
-			if (unitCache.has(value)) {
-				return unitCache.get(value);
-			}
-
-			formatted = formatDate(new Date(value), unit);
-
-			if (unitCache.size === FORMAT_CACHE_MAX_SIZE) {
-				unitCache.clear();
-			}
-
-			unitCache.set(value, formatted);
-		} else {
-			if (cache.has(value)) {
-				return cache.get(value);
-			}
-
-			if (type === TicksType.COMPACT) {
-				formatted = compactNumber(value);
-			} else {
-				formatted = String(value);
-			}
-
-			if (cache.size === FORMAT_CACHE_MAX_SIZE) {
-				cache.clear();
-			}
-
-			cache.set(value, formatted);
+	addDrawListener(listener) {
+		if (!this._drawListeners.includes(listener)) {
+			this._drawListeners.push(listener);
 		}
+	}
 
-		return formatted;
+	/**
+	 * @param {function()} listener
+	 */
+	removeDrawListener(listener) {
+		if (this._drawListeners.includes(listener)) {
+			pull(this._drawListeners, listener);
+		}
 	}
 
 	resize() {
-		this._width = this._canvas.parentNode.offsetWidth;
-		this._height = this._canvas.parentNode.offsetHeight;
+		const width = this._canvas.parentNode.offsetWidth;
+		const height = this._canvas.parentNode.offsetHeight;
 
-		this._canvas.width = this._width;
-		this._canvas.height = this._height;
+		this._canvas.width = width;
+		this._canvas.height = height;
 
-		this._calculatePixelsPerX();
-		this._calculatePixelsPerY();
-	}
+		this._xScale.setDimension(width);
+		this._yScale.setDimension(height);
 
-	draw() {
-		this._scaleXAxis();
-		this._scaleYAxis();
-
-		if (this._yScaleTransition && this._yScaleTransition.isPending()) {
-			this._yScaleTransition.start();
+		if (this._ySecondaryScale) {
+			this._ySecondaryScale.setDimension(height);
 		}
-
-		Array.from(this._graphsTransitions.values())
-			.forEach((transition) => {
-				if (transition.isPending()) {
-					transition.start();
-				}
-			});
-
-		this._draw();
 	}
 
 	/**
-	 * @private
+	 * @param {number} xPixels
 	 */
-	_prepareCanvas() {
-		this._context.setTransform(1, 0, 0, 1, 0, 0);
-		this._context.clearRect(0, 0, this._width, this._height);
+	highlight(xPixels) {
+		this._graphToHighlightedPoint.clear();
 
-		const translateX = this._pixelsPerX * this._minScaleX;
-		const translateY = this._pixelsPerY * this._minScaleY;
+		if (isNaN(xPixels)) {
+			return;
+		}
 
-		this._context.translate(translateX * -1, translateY);
+		this._views.forEach((view) => {
+			this._viewToGraphs.get(view)
+				.forEach((graph) => {
+					const x = this.getXByPixels(xPixels);
+					const range = this._getGraphRange(graph);
+
+					const [middle] = graph.getRange(x, x, {
+						interpolation: view.getInterpolationType()
+					});
+
+					const end = range.find((point) => point.x > middle.x) || middle;
+					const start = range[range.indexOf(end) - 1];
+					const highlighted = view.selectHighlightedPoint(start, middle, end);
+
+					this._graphToHighlightedPoint.set(graph, highlighted);
+				});
+		});
+	}
+
+	draw() {
+		this._fitScales();
+
+		this._draw();
+		this._drawListeners.forEach((listener) => listener());
+
+		this._startTransitions();
+	}
+
+	clear() {
+		this._stopTransitions();
+
+		this._clearScales();
+		this._clearGraphs();
+
+		this._clearXTicks();
+		this._clearYTicks();
+		this._clearYSecondaryTicks();
+
+		this._ticksFormatter.clearCache();
 	}
 
 	/**
 	 * @private
 	 */
 	_draw() {
-		this._prepareCanvas();
+		this._context.clearRect(0, 0, this._canvas.width, this._canvas.height);
 
-		const isEmpty = this._minRangeX === this._maxRangeX || isNaN(this._minX) && isNaN(this._maxX);
-
-		if (isEmpty) {
+		if (this._xScale.isEmpty() || this._xScale.isRangeEmpty()) {
 			this._drawEmptyText();
-		} else {
-			this._drawGrid();
-			this._drawGraphs();
-			this._drawTicks();
+
+			return;
 		}
+
+		this._drawRulers();
+		this._drawViews();
+		this._drawGrid();
+		this._drawXTicks();
+		this._drawYTicks();
 	}
 
 	/**
 	 * @private
 	 */
-	_drawGrid() {
-		this._context.lineWidth = TICK_LINE_THICKNESS;
-
-		if (this._yTicksType !== TicksType.NONE) {
-			const xPixels = this._pixelsPerX * this._minScaleX;
-
-			this._yTicks.forEach((tick) => {
-				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * tick;
-				const alpha = this._yTicksAlphas.has(tick) ? this._yTicksAlphas.get(tick) : 1;
-
-				this._context.strokeStyle = hexToRGB(this._tickLineColor, alpha);
-
-				this._context.beginPath();
-				this._context.moveTo(xPixels, yPixels);
-				this._context.lineTo(xPixels + this._width, yPixels);
-				this._context.stroke();
-			});
-		}
-	}
-
-	/**
-	 * @private
-	 */
-	_drawGraphs() {
-		this._context.lineCap = 'round';
-		this._context.lineJoin = 'round';
-		this._context.lineWidth = this._graphLineThickness;
-
-		this._graphs.forEach((graph) => {
-			const alpha = this._graphsAlphas.get(graph);
-			const range = this._graphsRanges.get(graph);
-
-			let lastDrawnXPixels;
-
-			this._context.beginPath();
-
-			range.forEach((point, index) => {
-				const xPixels = this._leftPadding + this._pixelsPerX * point.x;
-				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * point.y;
-
-				// Decimate redundant points
-				if (!lastDrawnXPixels || floor(lastDrawnXPixels) !== floor(xPixels)) {
-					if (index === 0) {
-						this._context.moveTo(xPixels, yPixels);
-					} else {
-						this._context.lineTo(xPixels, yPixels);
-					}
-
-					lastDrawnXPixels = xPixels;
-				}
-			});
-
-			this._context.strokeStyle = hexToRGB(graph.color, alpha);
-			this._context.stroke();
+	_drawViews() {
+		this._views.forEach((view) => {
+			view.draw(this._viewToGraphs.get(view), this._viewHelpers);
 		});
 	}
 
 	/**
 	 * @private
 	 */
-	_drawTicks() {
-		this._context.font = `${TICK_SIZE}px ${FONT}`;
+	_drawRulers() {
+		const shouldDraw = this._rulerXs.length > 0;
 
-		if (this._xTicksType !== TicksType.NONE) {
-			const yPixels = this._height - this._pixelsPerY * this._minScaleY - TICK_TEXT_BOTTOM_MARGIN;
-			const maxTextWidth = this._width / this._xTicks.length;
+		if (!shouldDraw) {
+			return;
+		}
 
-			const isStartReached = this._minScaleX === this._minX;
-			const isEndReached = this._maxScaleX === this._maxX;
+		this._context.save();
 
-			this._xTicks.forEach((tick) => {
-				const xPixels = this._pixelsPerX * tick;
+		translateScales(this._context, this._xScale, undefined);
 
-				const text = this.formatValue(tick, Axis.X);
-				const alpha = this._xTicksAlphas.has(tick) ? this._xTicksAlphas.get(tick) : 1;
+		this._context.lineWidth = this._rulerOptions.thickness;
+		this._context.strokeStyle = hexToRGB(this._rulerOptions.color, this._rulerOptions.alpha);
 
-				if (isStartReached) {
-					this._context.textAlign = 'start';
-				} else if (isEndReached) {
-					this._context.textAlign = 'end';
-				} else {
-					this._context.textAlign = 'center';
-				}
+		this._rulerXs.forEach((x) => {
+			const xPixels = this._xScale.getPixelsByValue(x);
 
-				if (this._xTicksBackround) {
-					const textBackground = createTextBackground(text);
-					const measuredTextWith = this._context.measureText(text).width;
+			this._context.beginPath();
+			this._context.moveTo(xPixels, 0);
+			this._context.lineTo(xPixels, this._yScale.getDimension() - this._yScale.getPadding()[1]);
+			this._context.stroke();
+		});
 
-					this._context.fillStyle = this._tickBackgroundColor;
-					this._context.fillText(textBackground, xPixels, yPixels, min(measuredTextWith, maxTextWidth));
-				}
+		this._context.restore();
+	}
 
-				this._context.fillStyle = hexToRGB(this._tickTextColor, alpha);
-				this._context.fillText(text, xPixels, yPixels, maxTextWidth);
+	/**
+	 * @private
+	 */
+	_drawGrid() {
+		const shouldDraw = this._yTicksOptions.type !== TicksType.NONE || (
+			this._ySecondaryScale && this._ySecondaryTicksOptions.type !== TicksType.NONE
+		);
+
+		if (!shouldDraw) {
+			return;
+		}
+
+		const xScaleFitStart = this._xScale.getFitStart();
+		const xScaleDimension = this._xScale.getDimension();
+
+		const xPixels = this._xScale.getPixelsByValue(xScaleFitStart, {
+			padding: false
+		});
+
+		this._context.save();
+		this._context.lineWidth = this._gridOptions.thickness;
+
+		if (this._yTicks.length) {
+			translateScales(this._context, this._xScale, this._yScale);
+
+			this._yTicks.forEach((tick) => {
+				let yPixels = this._yScale.getPixelsByValue(tick);
+				yPixels += (this._gridOptions.thickness / 2);
+
+				const alpha = this._getGridAlpha(tick, Axis.Y);
+
+				this._context.strokeStyle = hexToRGB(this._gridOptions.color, alpha);
+
+				this._context.beginPath();
+				this._context.moveTo(xPixels, yPixels);
+				this._context.lineTo(xPixels + xScaleDimension, yPixels);
+				this._context.stroke();
+			});
+		} else if (this._ySecondaryScale) {
+			translateScales(this._context, this._xScale, this._ySecondaryScale);
+
+			this._ySecondaryTicks.forEach((tick) => {
+				let yPixels = this._ySecondaryScale.getPixelsByValue(tick);
+				yPixels += (this._gridOptions.thickness / 2);
+
+				const alpha = this._getGridAlpha(tick, Axis.Y_SECONDARY);
+
+				this._context.strokeStyle = hexToRGB(this._gridOptions.color, alpha);
+
+				this._context.beginPath();
+				this._context.moveTo(xPixels, yPixels);
+				this._context.lineTo(xPixels + xScaleDimension, yPixels);
+				this._context.stroke();
 			});
 		}
 
-		if (this._yTicksType !== TicksType.NONE) {
-			const xPixels = this._pixelsPerX * this._minScaleX;
+		this._context.restore();
+	}
+
+	/**
+	 * @private
+	 */
+	_drawXTicks() {
+		const shouldDraw = this._xTicksOptions.type !== TicksType.NONE;
+
+		if (!shouldDraw) {
+			return;
+		}
+
+		const yScaleFitStart = this._yScale.getFitStart();
+		const xScaleDimension = this._xScale.getDimension();
+
+		const isStartReached = this._xScale.isStartReached();
+		const isEndReached = this._xScale.isEndReached();
+		const maxTextWidth = xScaleDimension / this._xTicks.length;
+
+		let yPixels = this._yScale.getPixelsByValue(yScaleFitStart, {
+			padding: false
+		});
+		yPixels -= this._xTicksOptions.size / 2;
+
+		this._context.save();
+
+		setFont(this._context, this._xTicksOptions.font, this._xTicksOptions.size);
+		translateScales(this._context, this._xScale, this._yScale);
+
+		if (isStartReached) {
+			this._context.textAlign = 'start';
+		} else if (isEndReached) {
+			this._context.textAlign = 'end';
+		} else {
+			this._context.textAlign = 'center';
+		}
+
+		this._xTicks.forEach((tick) => {
+			const xPixels = this._xScale.getPixelsByValue(tick, {
+				padding: false
+			});
+
+			const text = this._formatTick(tick, Axis.X);
+			const alpha = this._getTickAlpha(tick, Axis.X);
+
+			this._context.fillStyle = hexToRGB(this._xTicksOptions.color, alpha);
+			this._context.fillText(text, xPixels, yPixels, maxTextWidth);
+		});
+
+		this._context.restore();
+	}
+
+	/**
+	 * @private
+	 */
+	_drawYTicks() {
+		const shouldDraw = this._yTicksOptions.type !== TicksType.NONE || (
+			this._ySecondaryScale && this._ySecondaryTicksOptions.type !== TicksType.NONE
+		);
+
+		if (!shouldDraw) {
+			return;
+		}
+
+		const xScaleFitStart = this._xScale.getFitStart();
+		const xScaleDimension = this._xScale.getDimension();
+
+		const xPixels = this._xScale.getPixelsByValue(xScaleFitStart, {
+			padding: false
+		});
+
+		if (this._yTicks.length) {
+			this._context.save();
+
+			setFont(this._context, this._yTicksOptions.font, this._yTicksOptions.size);
+			translateScales(this._context, this._xScale, this._yScale);
+
+			this._context.textAlign = 'start';
 
 			this._yTicks.forEach((tick) => {
-				const yPixels = this._height - this._bottomPadding - this._pixelsPerY * tick - TICK_TEXT_BOTTOM_MARGIN;
+				let yPixels = this._yScale.getPixelsByValue(tick);
+				yPixels -= this._yTicksOptions.size / 2;
 
-				const text = this.formatValue(tick, Axis.Y);
-				const alpha = this._yTicksAlphas.has(tick) ? this._yTicksAlphas.get(tick) : 1;
+				const text = this._formatTick(tick, Axis.Y);
+				const alpha = this._getTickAlpha(tick, Axis.Y);
 
-				this._context.textAlign = 'start';
-
-				if (this._yTicksBackround) {
-					const textBackground = createTextBackground(text);
-					const measuredTextWith = this._context.measureText(text).width;
-
-					this._context.fillStyle = hexToRGB(this._tickBackgroundColor, alpha);
-					this._context.fillText(textBackground, xPixels, yPixels, measuredTextWith);
-				}
-
-				this._context.fillStyle = hexToRGB(this._tickTextColor, alpha);
+				this._context.fillStyle = hexToRGB(this._yTicksOptions.color, alpha);
 				this._context.fillText(text, xPixels, yPixels);
 			});
+
+			this._context.restore();
+		}
+
+		if (this._ySecondaryScale && this._ySecondaryTicks.length) {
+			this._context.save();
+
+			setFont(this._context, this._ySecondaryTicksOptions.font, this._ySecondaryTicksOptions.size);
+			translateScales(this._context, this._xScale, this._ySecondaryScale);
+
+			this._context.textAlign = 'end';
+
+			this._ySecondaryTicks.forEach((tick) => {
+				let yPixels = this._ySecondaryScale.getPixelsByValue(tick);
+				yPixels -= this._ySecondaryTicksOptions.size / 2;
+
+				const text = this._formatTick(tick, Axis.Y_SECONDARY);
+				const alpha = this._getTickAlpha(tick, Axis.Y_SECONDARY);
+
+				this._context.fillStyle = hexToRGB(this._ySecondaryTicksOptions.color, alpha);
+				this._context.fillText(text, xPixels + xScaleDimension, yPixels);
+			});
+
+			this._context.restore();
 		}
 	}
 
@@ -1037,220 +1070,313 @@ export default class Chart {
 	 * @private
 	 */
 	_drawEmptyText() {
-		this._context.font = `${EMPTY_TEXT_SIZE}px ${FONT}`;
+		const center = [this._canvas.width / 2, this._canvas.height / 2];
+
+		setFont(this._context, this._emptyTextOptions.font, this._emptyTextOptions.size);
+
 		this._context.textBaseline = 'middle';
 		this._context.textAlign = 'center';
 
-		this._context.fillStyle = this._tickTextColor;
-		this._context.fillText(this._emptyText, this._width / 2, this._height / 2);
+		this._context.fillStyle = this._emptyTextOptions.color;
+		this._context.fillText(this._emptyTextOptions.text, ...center);
 	}
 
 	/**
 	 * @private
 	 */
-	_scaleXAxis() {
-		const minX = isNaN(this._minRangeX) ? this._minX : this._minRangeX;
-		const maxX = isNaN(this._maxRangeX) ? this._maxX : this._maxRangeX;
+	_fitScales() {
+		const {isEmpty: isXScaleEmpty, isUpdated: isXScaleUpdated} = fitScaleWithMeta(this._xScale);
+		const {isEmpty: isYScaleEmpty, isUpdated: isYScaleUpdated} = fitScaleWithMeta(this._yScale);
 
-		let spacing = this._xTicksSpacing;
-		if (!spacing) {
-			spacing = (maxX - minX) / this._ticksCount;
-		} else {
-			const ticksCount = (maxX - minX) / spacing;
+		if (isXScaleEmpty) {
+			this._clearXTicks();
+		} else if (isXScaleUpdated) {
+			this._updateXTicks();
+		}
 
-			if (!ticksCount) {
-				spacing = NaN;
-			} else if (ticksCount > this._ticksCount) {
-				spacing *= 2;
-			} else if (ticksCount < this._ticksCount - 2) {
-				spacing /= 2;
+		if (isYScaleEmpty) {
+			this._clearYTicks();
+		} else if (isYScaleUpdated) {
+			this._updateYTicks(this._yScale);
+		}
+
+		if (this._ySecondaryScale) {
+			const {isEmpty, isUpdated} = fitScaleWithMeta(this._ySecondaryScale);
+
+			if (isEmpty) {
+				this._clearYSecondaryTicks();
+			} else if (isUpdated) {
+				this._updateYTicks(this._ySecondaryScale);
 			}
 		}
+	}
 
-		if (!spacing) {
-			this._minScaleX = NaN;
-			this._maxScaleX = NaN;
-			this._pixelsPerX = NaN;
+	/**
+	 * @private
+	 */
+	_updateXTicks() {
+		const scaleStart = this._xScale.getStart();
+		const scaleFitStart = this._xScale.getFitStart();
+		const scaleFitEnd = this._xScale.getFitEnd();
 
-			this._xTicks = [];
-			this._xTicksSpacing = NaN;
-			this._xTicksAlphas.clear();
+		const ticksCount = this._xScale.getTicksCount();
+		const ticksSpacing = this._xScale.getTicksSpacing();
 
-			return;
+		const ticksOffset = (scaleStart - scaleFitStart) % ticksSpacing;
+		const actualTicksCount = (scaleFitEnd - scaleFitStart) / ticksSpacing;
+
+		this._xTicks.length = 0;
+		this._xTicks.push(ticksOffset + scaleFitStart);
+
+		while (this._xTicks[this._xTicks.length - 1] < (ticksOffset + scaleFitEnd)) {
+			this._xTicks.push(ticksOffset + scaleFitStart + (this._xTicks.length * ticksSpacing));
 		}
 
-		this._minScaleX = minX;
-		this._maxScaleX = maxX;
-		this._calculatePixelsPerX();
+		this._xTickToVisibility.clear();
 
-		if (this._xTicksSpacing !== spacing) {
-			this._xTicksSpacing = spacing;
-			this._xTicksAlphas.clear();
-		}
-
-		const offsetX = (this._minX - this._minScaleX) % spacing;
-		const actualTicksCount = (this._maxScaleX - this._minScaleX) / spacing;
-
-		this._xTicks = [this._minScaleX + offsetX];
-		while (this._xTicks[this._xTicks.length - 1] < (this._maxScaleX + offsetX)) {
-			const tick = this._minScaleX + offsetX + (this._xTicks.length * spacing);
-
-			this._xTicks.push(tick);
-			this._xTicksAlphas.delete(tick);
-		}
-
-		if (actualTicksCount < this._ticksCount - 1) {
+		if (actualTicksCount < ticksCount - 1) {
 			this._xTicks.slice()
 				.forEach((tick) => {
-					const interTick = tick + (spacing / 2);
+					const tickIndex = this._xTicks.indexOf(tick);
 
-					if (interTick < this._maxScaleX) {
-						this._xTicks.splice(this._xTicks.indexOf(tick), 1, tick, interTick);
-						this._xTicksAlphas.set(interTick, (this._ticksCount - 1) - actualTicksCount);
+					const middleTick = tick + (ticksSpacing / 2);
+					const middleTickAlpha = (ticksCount - 1) - actualTicksCount;
+
+					if (middleTick < scaleFitEnd) {
+						this._xTicks.splice(tickIndex, 1, tick, middleTick);
+						this._xTickToVisibility.set(middleTick, middleTickAlpha);
 					}
 				});
 		}
 	}
 
 	/**
+	 * @param {IScale} scale
 	 * @private
 	 */
-	_scaleYAxis() {
-		const minY = isNaN(this._minRangeY) ? this._minY : this._minRangeY;
-		const maxY = isNaN(this._maxRangeY) ? this._maxY : this._maxRangeY;
+	_updateYTicks(scale) {
+		const isPrimary = scale === this._yScale;
 
-		let spacing = (maxY - minY) / this._ticksCount;
-		if (!spacing) {
-			this._minScaleY = NaN;
-			this._maxScaleY = NaN;
-			this._pixelsPerY = NaN;
+		const ticks = isPrimary ? this._yTicks : this._ySecondaryTicks;
+		const visibilityMapping = isPrimary ? this._yTickToVisibility : this._ySecondaryTickToVisibility;
 
-			this._yTicks = [];
-			this._yTicksAlphas.clear();
+		const scaleFitStart = scale.getFitStart();
+		const scaleFitEnd = scale.getFitEnd();
+		const ticksSpacing = scale.getTicksSpacing();
 
-			return;
+		ticks.length = 0;
+		ticks.push(scaleFitStart);
+
+		while (ticks[ticks.length - 1] < scaleFitEnd) {
+			ticks.push(scaleFitStart + (ticks.length * ticksSpacing));
 		}
 
-		const isNice = this._yTicksScale === TicksScale.NICE;
-		if (isNice) {
-			spacing = niceNumber(spacing);
+		visibilityMapping.clear();
+	}
 
-			const niceTicksCount = ceil(maxY / spacing) - floor(minY / spacing);
-			if (niceTicksCount > this._ticksCount) {
-				spacing = niceNumber(niceTicksCount * spacing / this._ticksCount);
-			}
+	/**
+	 * @param {IScale} scale
+	 * @param {number} fitStart
+	 * @param {number} fitEnd
+	 * @private
+	 */
+	_onYScaleTransitionStart(scale, fitStart, fitEnd) {
+		const isPrimary = scale === this._yScale;
+
+		const ticks = isPrimary ? this._yTicks : this._ySecondaryTicks;
+		const ticksSpacing = scale.getTicksSpacing();
+		const visibilityMapping = isPrimary ? this._yTickToVisibility : this._ySecondaryTickToVisibility;
+
+		const oldTicks = ticks.slice();
+
+		const newTicks = [fitStart];
+		while (newTicks[newTicks.length - 1] < fitEnd) {
+			newTicks.push(fitStart + (newTicks.length * ticksSpacing));
 		}
 
-		const newMinScaleY = isNice ? (floor(minY / spacing) * spacing) : minY;
-		const newMaxScaleY = isNice ? (ceil(maxY / spacing) * spacing) : maxY;
+		ticks.length = 0;
+		ticks.push(...unique([...oldTicks, ...newTicks]).sort((a, b) => a - b));
 
-		if (isNaN(this._minScaleY) || isNaN(this._maxScaleY)) {
-			this._minScaleY = newMinScaleY;
-			this._maxScaleY = newMaxScaleY;
-			this._calculatePixelsPerY();
-
-			this._yTicks = [this._minScaleY];
-			while (this._yTicks[this._yTicks.length - 1] < this._maxScaleY) {
-				this._yTicks.push(this._minScaleY + (this._yTicks.length * spacing));
-			}
-
-			return;
-		}
-
-		const currentTransitionIntervals = this._yScaleTransition && this._yScaleTransition.getIntervals();
-		const currentTransitionValues = this._yScaleTransition && this._yScaleTransition.getValues();
-
-		const oldMinScaleY = currentTransitionIntervals ? currentTransitionIntervals[0].to : this._minScaleY;
-		const oldMaxScaleY = currentTransitionIntervals ? currentTransitionIntervals[1].to : this._maxScaleY;
-
-		if (newMinScaleY === oldMinScaleY && newMaxScaleY === oldMaxScaleY) {
-			return;
-		}
-
-		const oldYTicks = this._yTicks.slice();
-
-		const newYTicks = [newMinScaleY];
-		while (newYTicks[newYTicks.length - 1] < newMaxScaleY) {
-			newYTicks.push(newMinScaleY + (newYTicks.length * spacing));
-		}
-
-		this._yTicks = unique([...oldYTicks, ...newYTicks]).sort((a, b) => a - b);
-		this._yTicks.forEach((tick) => {
-			if (this._yTicksAlphas.has(tick)) {
+		ticks.forEach((tick) => {
+			if (visibilityMapping.has(tick)) {
 				return;
 			}
 
-			if (newYTicks.includes(tick)) {
-				this._yTicksAlphas.set(tick, 0);
+			if (newTicks.includes(tick)) {
+				visibilityMapping.set(tick, 0);
 			}
 
-			if (oldYTicks.includes(tick)) {
-				this._yTicksAlphas.set(tick, 1);
+			if (oldTicks.includes(tick)) {
+				visibilityMapping.set(tick, 1);
 			}
 		});
 
-		const initialYTicksAlphas = new Map(this._yTicksAlphas);
+		const initialVisibilityMapping = new Map(visibilityMapping);
 
-		const transitionIntervals = [
-			{from: currentTransitionValues ? currentTransitionValues[0] : oldMinScaleY, to: newMinScaleY},
-			{from: currentTransitionValues ? currentTransitionValues[1] : oldMaxScaleY, to: newMaxScaleY},
-			{from: 0, to: 1}
-		];
+		scale.setTransitionListeners({
+			onProgress: (progress) => {
+				ticks.forEach((tick) => {
+					const initialVisibility = initialVisibilityMapping.get(tick);
 
-		const onTransitionProgress = ([minScaleY, maxScaleY, alphaDiff]) => {
-			this._minScaleY = minScaleY;
-			this._maxScaleY = maxScaleY;
-			this._calculatePixelsPerY();
-
-			this._yTicks.forEach((tick) => {
-				const initialAlpha = initialYTicksAlphas.get(tick);
-
-				if (newYTicks.includes(tick)) {
-					this._yTicksAlphas.set(tick, initialAlpha + alphaDiff);
-				} else if (oldYTicks.includes(tick)) {
-					this._yTicksAlphas.set(tick, initialAlpha - alphaDiff);
-				}
-			});
-		};
-
-		const onTransitionComplete = () => {
-			this._yScaleTransition = null;
-			this._yTicksAlphas.clear();
-
-			this._yTicks = [newMinScaleY];
-			while (this._yTicks[this._yTicks.length - 1] < newMaxScaleY) {
-				this._yTicks.push(newMinScaleY + (this._yTicks.length * spacing));
+					if (newTicks.includes(tick)) {
+						visibilityMapping.set(tick, min(initialVisibility + progress, 1));
+					} else if (oldTicks.includes(tick)) {
+						visibilityMapping.set(tick, max(initialVisibility - progress, 0));
+					}
+				});
 			}
-		};
+		});
+	}
 
-		const onTransitionUpdate = () => {
-			this._draw();
-		};
-
-		if (this._yScaleTransition) {
-			this._yScaleTransition.stop();
+	/**
+	 * @param {number} tick
+	 * @param {Axis} axis
+	 * @return {string}
+	 * @private
+	 */
+	_formatTick(tick, axis) {
+		/** @type {TicksType} */ let type;
+		if (axis === Axis.X) {
+			type = this._xTicksOptions.type;
+		} else if (axis === Axis.Y) {
+			type = this._yTicksOptions.type;
+		} else if (axis === Axis.Y_SECONDARY) {
+			type = this._ySecondaryTicksOptions.type;
 		}
 
-		this._yScaleTransition = new Transition(
-			transitionIntervals,
-			TRANSITION_DURATION,
-			Timing.LINEAR,
-			onTransitionProgress,
-			onTransitionComplete,
-			onTransitionUpdate
-		);
+		let scale;
+		if (axis === Axis.Y_SECONDARY) {
+			if (!this._ySecondaryScale) {
+				throw new Error('Y secondary scale is not present');
+			}
+
+			scale = this._ySecondaryScale;
+		} else {
+			scale = axis === Axis.X ? this._xScale : this._yScale;
+		}
+
+		return this._ticksFormatter.format(tick, type, scale);
+	}
+
+	/**
+	 * @param {number} tick
+	 * @param {Axis} axis
+	 * @return {number}
+	 * @private
+	 */
+	_getGridAlpha(tick, axis) {
+		let visibilityMapping;
+		if (axis === Axis.Y) {
+			visibilityMapping = this._yTickToVisibility;
+		} else if (axis === Axis.Y_SECONDARY) {
+			visibilityMapping = this._ySecondaryTickToVisibility;
+		}
+
+		if (!visibilityMapping) {
+			throw new Error(`Wrong axis ${axis}`);
+		}
+
+		const visibility = visibilityMapping.has(tick) ? visibilityMapping.get(tick) : 1;
+
+		return visibility * this._gridOptions.alpha;
+	}
+
+	/**
+	 * @param {number} tick
+	 * @param {Axis} axis
+	 * @return {number}
+	 * @private
+	 */
+	_getTickAlpha(tick, axis) {
+		let visibilityMapping;
+		if (axis === Axis.X) {
+			visibilityMapping = this._xTickToVisibility;
+		} else if (axis === Axis.Y) {
+			visibilityMapping = this._yTickToVisibility;
+		} else if (axis === Axis.Y_SECONDARY) {
+			visibilityMapping = this._ySecondaryTickToVisibility;
+		}
+
+		const visibility = visibilityMapping.has(tick) ? visibilityMapping.get(tick) : 1;
+
+		let referenceAlpha;
+		if (axis === Axis.X) {
+			referenceAlpha = this._xTicksOptions.alpha;
+		} else if (axis === Axis.Y) {
+			referenceAlpha = this._yTicksOptions.alpha;
+		} else if (axis === Axis.Y_SECONDARY) {
+			referenceAlpha = this._ySecondaryTicksOptions.alpha;
+		}
+
+		return visibility * referenceAlpha;
+	}
+
+	/**
+	 * @return {Array<Graph>}
+	 * @private
+	 */
+	_getActiveGraphs() {
+		return this._graphs.filter((graph) => !this._inactiveGraphs.includes(graph));
+	}
+
+	/**
+	 * @param {IView} view
+	 * @return {Array<Graph>}
+	 * @private
+	 */
+	_getViewActiveGraphs(view) {
+		return this._viewToGraphs.get(view)
+			.filter((graph) => !this._inactiveGraphs.includes(graph));
+	}
+
+	/**
+	 * @param {Graph} graph
+	 * @return {Array<Point>}
+	 * @private
+	 */
+	_getGraphRange(graph) {
+		if (!this._xScale.isRangeGiven()) {
+			return graph.points;
+		}
+
+		const view = this._graphToView.get(graph);
+		const start = this._xScale.getRangeStart();
+		const end = this._xScale.getRangeEnd();
+
+		return graph.getRange(start, end, {
+			interpolation: view.getInterpolationType()
+		});
 	}
 
 	/**
 	 * @private
 	 */
-	_stopAllTransitions() {
-		if (this._yScaleTransition) {
-			this._yScaleTransition.stop();
-			this._yScaleTransition = null;
+	_startTransitions() {
+		this._yScale.startTransition();
+
+		if (this._ySecondaryScale) {
+			this._ySecondaryScale.startTransition();
 		}
 
-		Array.from(this._graphsTransitions.values())
+		Array.from(this._graphToTransition.values())
+			.forEach((transition) => {
+				if (transition.isPending()) {
+					transition.start();
+				}
+			});
+	}
+
+	/**
+	 * @private
+	 */
+	_stopTransitions() {
+		this._yScale.stopTransition();
+
+		if (this._ySecondaryScale) {
+			this._ySecondaryScale.stopTransition();
+		}
+
+		Array.from(this._graphToTransition.values())
 			.forEach((transition) => {
 				if (transition.isActive()) {
 					transition.stop();
@@ -1259,76 +1385,347 @@ export default class Chart {
 	}
 
 	/**
+	 * @param {Graph} graph
+	 * @private
+	 */
+	_stopCurrentGraphTransition(graph) {
+		const currentTransition = this._graphToTransition.get(graph);
+		if (currentTransition && currentTransition.isActive()) {
+			currentTransition.stop();
+		}
+	}
+
+	/**
+	 * @param {Graph} graph
+	 * @private
+	 */
+	_setupAddingGraphTransition(graph) {
+		const visibilityInterval = {from: this._graphToVisibility.get(graph), to: 1};
+
+		const transition = new Transition({
+			timing: Timing.EASE_OUT,
+			duration: GRAPH_FADE_DURATION,
+			intervals: [visibilityInterval],
+
+			onProgress: ([visibility]) => {
+				this._graphToVisibility.set(graph, visibility);
+			},
+
+			onComplete: () => {
+				this._graphToTransition.delete(graph);
+			},
+
+			onUpdate: () => {
+				this._draw();
+			}
+		});
+
+		this._graphToTransition.set(graph, transition);
+	}
+
+	/**
+	 * @param {Graph} graph
+	 * @private
+	 */
+	_setupRemovingGraphTransition(graph) {
+		const visibilityInterval = {from: this._graphToVisibility.get(graph), to: 0};
+
+		const transition = new Transition({
+			timing: Timing.EASE_IN,
+			duration: GRAPH_FADE_DURATION,
+			intervals: [visibilityInterval],
+
+			onProgress: ([visibility]) => {
+				this._graphToVisibility.set(graph, visibility);
+			},
+
+			onComplete: () => {
+				const view = this._graphToView.get(graph);
+				const viewGraphs = this._viewToGraphs.get(view);
+
+				pull(this._graphs, graph);
+				pull(this._inactiveGraphs, graph);
+
+				this._graphToView.delete(graph);
+				this._graphToRange.delete(graph);
+				this._graphToVisibility.delete(graph);
+				this._graphToTransition.delete(graph);
+				this._graphToHighlightedPoint.delete(graph);
+
+				delete viewGraphs[viewGraphs.indexOf(graph)];
+			},
+
+			onUpdate: () => {
+				this._draw();
+			},
+
+			onCancel: () => {
+				pull(this._inactiveGraphs, graph);
+			}
+		});
+
+		this._inactiveGraphs.push(graph);
+		this._graphToTransition.set(graph, transition);
+	}
+
+	/**
+	 * @private
+	 */
+	_clearScales() {
+		this._xScale.clear();
+		this._yScale.clear();
+
+		if (this._ySecondaryScale) {
+			this._ySecondaryScale.clear();
+		}
+	}
+
+	/**
 	 * @private
 	 */
 	_clearGraphs() {
 		this._graphs.length = 0;
-		this._removingGraphs.length = 0;
+		this._inactiveGraphs.length = 0;
 
-		this._graphsRanges.clear();
-		this._graphsAlphas.clear();
-		this._graphsTransitions.clear();
+		this._graphToView.clear();
+		this._graphToRange.clear();
+		this._graphToVisibility.clear();
+		this._graphToTransition.clear();
+		this._graphToHighlightedPoint.clear();
+
+		Array.from(this._viewToGraphs.values())
+			.forEach((graphs) => {
+				graphs.length = 0;
+			});
 	}
 
 	/**
 	 * @private
 	 */
-	_clearTicks() {
+	_clearXTicks() {
 		this._xTicks.length = 0;
-		this._xTicksSpacing = NaN;
-		this._xTicksAlphas.clear();
-		this._clearFormatCache(this._xTicksFormatCache, this._xTicksType);
+		this._xTickToVisibility.clear();
+	}
 
+	/**
+	 * @private
+	 */
+	_clearYTicks() {
 		this._yTicks.length = 0;
-		this._yTicksAlphas.clear();
-		this._clearFormatCache(this._yTicksFormatCache, this._yTicksType);
+		this._yTickToVisibility.clear();
 	}
 
 	/**
 	 * @private
 	 */
-	_calculatePixelsPerX() {
-		this._pixelsPerX = (this._width - this._leftPadding - this._rightPadding) / (this._maxScaleX - this._minScaleX);
+	_clearYSecondaryTicks() {
+		this._ySecondaryTicks.length = 0;
+		this._ySecondaryTickToVisibility.clear();
 	}
 
 	/**
+	 * @param {Array<ViewType>} types
+	 * @param {ViewsOptions} options
+	 * @param {Array<number>} ySecondary
+	 * @return {Array<IView>}
 	 * @private
 	 */
-	_calculatePixelsPerY() {
-		this._pixelsPerY = (this._height - this._topPadding - this._bottomPadding) / (this._maxScaleY - this._minScaleY);
+	_createViews(types, options, ySecondary) {
+		return types.map((type, index) => {
+			const yScale = ySecondary.includes(index) ? this._ySecondaryScale : this._yScale;
+
+			switch (type) {
+				case ViewType.LINE:
+					return new LineView(this._context, this._xScale, yScale, options.line);
+
+				case ViewType.BAR:
+					return new BarView(this._context, this._xScale, yScale, options.bar);
+
+				default:
+					throw new Error(`Unsupported view type ${type}`);
+			}
+		});
 	}
 
 	/**
+	 * @return {ViewHelpers}
+	 * @private
+	 */
+	_createViewHelpers() {
+		return {
+			getGraphRange: (graph) => this._graphToRange.get(graph),
+			getGraphVisibility: (graph) => this._graphToVisibility.get(graph),
+			getGraphHighlightedPoint: (graph) => this._graphToHighlightedPoint.get(graph) || null
+		};
+	}
+}
+
+class TicksFormatter {
+	/**
+	 * @param {number} maxCacheSize
+	 */
+	constructor(maxCacheSize) {
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._maxCacheSize = maxCacheSize;
+
+		/**
+		 * @type {Map<number, string>}
+		 * @private
+		 */
+		this._compactCache = new Map();
+
+		/**
+		 * @type {Map<DateUnit, Map<number, string>>}
+		 * @private
+		 */
+		this._dateCache = new Map();
+
+		Object.values(DateUnit)
+			.forEach((unit) => {
+				this._dateCache.set(unit, new Map());
+			});
+	}
+
+	/**
+	 * @param {number} tick
 	 * @param {TicksType} type
-	 * @return {FormatCache}
-	 * @private
+	 * @param {IScale} scale
+	 * @return {string}
 	 */
-	_createFormatCache(type) {
-		const cache = new Map();
+	format(tick, type, scale) {
+		let formatted;
 
-		if (type === TicksType.DATE) {
-			Object.values(DateUnit)
-				.forEach((unit) => {
-					cache.set(unit, new Map());
-				});
+		switch (type) {
+			case TicksType.DATE:
+				const ticksSpacing = scale.getTicksSpacing();
+
+				const msInSecond = 1000;
+				const msInMinute = msInSecond * 60;
+				const msInHour = msInMinute * 60;
+				const msInDay = msInHour * 24;
+				const msInMonth = msInDay * 30;
+				const msInYear = msInMonth * 12;
+
+				/** @type {DateUnit} */ let unit;
+				if (ticksSpacing / msInYear >= 1) {
+					unit = DateUnit.YEAR;
+				} else if (ticksSpacing / msInMonth >= 1) {
+					unit = DateUnit.MONTH;
+				} else if (ticksSpacing / msInDay >= 1) {
+					unit = DateUnit.DAY;
+				} else if (ticksSpacing / msInHour >= 1) {
+					unit = DateUnit.HOUR;
+				} else if (ticksSpacing / msInMinute >= 1) {
+					unit = DateUnit.MINUTE;
+				} else if (ticksSpacing / msInSecond >= 1) {
+					unit = DateUnit.SECOND;
+				}
+
+				const unitBucket = this._dateCache.get(unit);
+				if (unitBucket.has(tick)) {
+					formatted = unitBucket.get(tick);
+				} else {
+					formatted = formatDate(new Date(tick), unit);
+
+					if (unitBucket.size === this._maxCacheSize) {
+						unitBucket.clear();
+					}
+
+					unitBucket.set(tick, formatted);
+				}
+
+				break;
+
+			case TicksType.COMPACT:
+				if (this._compactCache.has(tick)) {
+					formatted = this._compactCache.get(tick);
+				} else {
+					formatted = compactNumber(tick);
+
+					if (this._compactCache.size === this._maxCacheSize) {
+						this._compactCache.clear();
+					}
+
+					this._compactCache.set(tick, formatted);
+				}
+
+				break;
+
+			default:
+				formatted = String(tick);
+
+				break;
 		}
 
-		return cache;
+		return formatted;
 	}
 
-	/**
-	 * @param {FormatCache} cache
-	 * @param {TicksType} type
-	 * @private
-	 */
-	_clearFormatCache(cache, type) {
-		if (type === TicksType.DATE) {
-			Array.from(cache.keys())
-				.forEach((unit) => {
-					cache.get(unit).clear();
-				});
-		} else {
-			cache.clear();
-		}
+	clearCache() {
+		this._compactCache.clear();
+
+		Array.from(this._dateCache.values())
+			.forEach((unitBucket) => {
+				unitBucket.clear();
+			});
 	}
+}
+
+/**
+ * @param {CanvasRenderingContext2D} context
+ * @param {string} family
+ * @param {number} size
+ */
+function setFont(context, family, size) {
+	const font = `${size}px ${family}`;
+
+	if (context.font !== font) {
+		context.font = font;
+	}
+}
+
+/**
+ * @param {CanvasRenderingContext2D} context
+ * @param {IScale=} xScale
+ * @param {IScale=} yScale
+ */
+function translateScales(context, xScale, yScale) {
+	let translateX = 0;
+	if (xScale) {
+		translateX = xScale.getPixelsPerValue() * xScale.getFitStart() * -1;
+	}
+
+	let translateY = 0;
+	if (yScale) {
+		translateY = yScale.getPixelsPerValue() * yScale.getFitStart();
+	}
+
+	context.translate(translateX, translateY);
+}
+
+/**
+ * @param {IScale} scale
+ * @return {{
+ *     isEmpty: boolean,
+ *     isUpdated: boolean
+ * }}
+ */
+function fitScaleWithMeta(scale) {
+	const oldFitStart = scale.getFitStart();
+	const oldFitEnd = scale.getFitEnd();
+
+	scale.fit();
+
+	const fitStart = scale.getFitStart();
+	const fitEnd = scale.getFitEnd();
+
+	const isEmpty = isNaN(fitStart) || isNaN(fitEnd);
+	const isUpdated = fitStart !== oldFitStart || fitEnd !== oldFitEnd;
+
+	return {
+		isEmpty,
+		isUpdated
+	};
 }

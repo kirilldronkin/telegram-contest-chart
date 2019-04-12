@@ -5,6 +5,10 @@ body {
 	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
+body._scrolling {
+	pointer-events: none;
+}
+
 #title {
 	margin-top: 20px;
 	font-size: 20px;
@@ -197,60 +201,44 @@ body {
 	font-size: 18px;
 }
 
-.cursor__marker {
-	width: 16px;
-	height: 16px;
-	position: absolute;
-	border-radius: 16px;
-	box-sizing: border-box;
-	border: 2px solid;
-	margin-left: -8px;
-	margin-top: -8px;
-	z-index: 2;
-}
-
-.cursor__ruler {
-	position: absolute;
-	border-right: 2px dashed;
-	margin-left: -1px;
-	z-index: 1;
-}
-
-.label {
+.toolbar {
 	white-space: nowrap;
 	position: absolute;
 	top: 0;
+	left: 0;
 	border: 1px solid;
 	border-radius: 5px;
 	box-shadow: 0 1px 3px 1px ;
 	padding: 10px 15px 10px 15px;
-	z-index: 3;
+	z-index: 999;
+	will-change: transform;
+	pointer-events: none;
 }
 
-.label__title {
+.toolbar__title {
 	font-size: 15px;
 	font-weight: bold;
 }
 
-.label__items {
+.toolbar__items {
 	margin-top: 10px;
 }
 
-.label__item {
+.toolbar__item {
 	display: inline-block;
 	margin-right: 15px;
 }
 
-.label__item:last-child {
+.toolbar__item:last-child {
 	margin-right: 0;
 }
 
-.label__item-value {
+.toolbar__item-value {
 	font-size: 15px;
 	font-weight: bold;
 }
 
-.label__item-title {
+.toolbar__item-title {
 	margin-top: 2px;
 	font-size: 12px;
 }

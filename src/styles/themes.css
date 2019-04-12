@@ -37,21 +37,13 @@ body._day .checkbox__text {
 	color: #101010;
 }
 
-body._day .cursor__marker {
-	background: #fff;
-}
-
-body._day .cursor__ruler {
-	border-color: #dfe7eb;
-}
-
-body._day .label {
+body._day .toolbar {
 	color: #e7e7e7;
 	background: #fff;
 	border-color: #a9b3b9;
 }
 
-body._day .label__title {
+body._day .toolbar__title {
 	color: #101010;
 }
 
@@ -94,20 +86,12 @@ body._night .checkbox__text {
 	color: #fff;
 }
 
-body._night .cursor__marker {
-	background: #232f3d;
-}
-
-body._night .cursor__ruler {
-	border-color: #394959;
-}
-
-body._night .label {
+body._night .toolbar {
 	color: #2a2a2a;
 	background: #232f3d;
 	border-color: #202b38;
 }
 
-body._night .label__title {
+body._night .toolbar__title {
 	color: #fff;
 }

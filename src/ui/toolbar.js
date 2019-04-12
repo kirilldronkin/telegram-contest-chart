@@ -1,6 +1,6 @@
-import {createDiv} from '../utils.js';
+import {createDivElement} from '../utils.js';
 
-export default class Label {
+export default class Toolbar {
 	/**
 	 * @param {HTMLElement} container
 	 */
@@ -41,31 +41,35 @@ export default class Label {
 	 * }>} items
 	 */
 	setItems(items) {
-		while (this._itemsContainer.firstChild) {
-			this._itemsContainer.removeChild(this._itemsContainer.firstChild);
+		while (this._itemsContainer.lastChild) {
+			this._itemsContainer.removeChild(this._itemsContainer.lastChild);
 		}
 
+		const fragment = document.createDocumentFragment();
+
 		items.forEach(({title, value, color}) => {
-			const itemElement = createDiv('label__item');
-			const valueElement = createDiv('label__item-value', value);
-			const titleElement = createDiv('label__item-title', title);
+			const itemElement = createDivElement('toolbar__item');
+			const valueElement = createDivElement('toolbar__item-value', value);
+			const titleElement = createDivElement('toolbar__item-title', title);
 
 			itemElement.style.color = color;
 			itemElement.appendChild(valueElement);
 			itemElement.appendChild(titleElement);
 
-			this._itemsContainer.appendChild(itemElement);
+			fragment.appendChild(itemElement);
 		});
+
+		this._itemsContainer.appendChild(fragment);
 	}
 
 	/**
 	 * @private
 	 */
 	_setupDOM() {
-		this._container.classList.add('label');
+		this._container.classList.add('toolbar');
 
-		this._titleElement = createDiv('label__title');
-		this._itemsContainer = createDiv('label__items');
+		this._titleElement = createDivElement('toolbar__title');
+		this._itemsContainer = createDivElement('toolbar__items');
 
 		this._container.appendChild(this._titleElement);
 		this._container.appendChild(this._itemsContainer);

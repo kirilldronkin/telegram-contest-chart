@@ -1,4 +1,4 @@
-import {noop, createDiv} from '../utils.js';
+import {noop, createDivElement} from '../utils.js';
 
 export default class Checkbox {
 	/**
@@ -69,12 +69,12 @@ export default class Checkbox {
 	_setupDOM() {
 		this._container.classList.add('checkbox');
 
-		this._iconElement = createDiv('checkbox__icon');
+		this._iconElement = createDivElement('checkbox__icon');
 		this._iconElement.style.borderColor = this._color;
-		this._iconElement.appendChild(createDiv('checkbox__mark'));
+		this._iconElement.appendChild(createDivElement('checkbox__mark'));
 
 		this._container.appendChild(this._iconElement);
-		this._container.appendChild(createDiv('checkbox__text', this._text));
+		this._container.appendChild(createDivElement('checkbox__text', this._text));
 	}
 
 	/**

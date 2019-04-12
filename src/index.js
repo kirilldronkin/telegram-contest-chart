@@ -1,8 +1,8 @@
 import Point from './point.js';
 import Graph from './graph.js';
-import Chart, {TicksType, TicksScale} from './chart.js';
+import Chart, {Axis, ViewType, TicksType} from './chart.js';
 import Cursor from './cursor.js';
-import {createDiv} from './utils.js';
+import {createDivElement} from './utils.js';
 import Zoombar from './ui/zoombar.js';
 import Checkbox from './ui/checkbox.js';
 
@@ -22,6 +22,11 @@ const MOBILE_MEDIA_QUERY = 'only screen and (max-width: 480px) and (orientation:
 const ZOOMBAR_GRIP_SIZE = 15;
 
 /**
+ * @const {number}
+ */
+const SCROLLING_STATE_TIME = 500;
+
+/**
  * @enum {string}
  */
 const Theme = {
@@ -33,26 +38,66 @@ const mobileMedia = window.matchMedia(MOBILE_MEDIA_QUERY);
 
 const zoomChartCanvas = /** @type {HTMLCanvasElement} */ (document.querySelector('#zoom-chart-canvas'));
 const zoomChart = new Chart(zoomChartCanvas, {
-	xTicksType: TicksType.DATE,
-	yTicksType: TicksType.COMPACT,
-	yTicksScale: TicksScale.NICE,
-	yTicksBackground: true,
-	topPadding: 30,
-	bottomPadding: 40,
-	ticksCount: mobileMedia.matches ? 3 : 5,
-	graphLineThickness: mobileMedia.matches ? 2 : 3,
-	emptyText: 'No data'
+	viewTypes: [ViewType.LINE],
+	viewsOptions: {
+		line: {
+			thickness: mobileMedia.matches ? 2 : 3,
+			highlightRadius: 8
+		}
+	},
+	xTicksOptions: {
+		type: TicksType.DATE,
+		count: mobileMedia.matches ? 5 : 7,
+		size: 15
+	},
+	yTicksOptions: {
+		type: TicksType.COMPACT,
+		count: mobileMedia.matches ? 5 : 7,
+		size: 15
+	},
+	ySecondaryViews: [1],
+	ySecondaryTicksOptions: {
+		type: TicksType.COMPACT,
+		count: mobileMedia.matches ? 5 : 7,
+		size: 15
+	},
+	paddingOptions: {
+		top: 30,
+		bottom: 40
+	},
+	gridOptions: {
+		text: 'No data',
+		alpha: 0.5
+	},
+	emptyTextOptions: {
+		text: 'No data',
+		size: 20
+	},
+	rulerOptions: {
+		alpha: 0.5
+	}
 });
 
 const overviewChartCanvas = /** @type {HTMLCanvasElement} */ (document.querySelector('#overview-chart-canvas'));
 const overviewChart = new Chart(overviewChartCanvas, {
-	xTicksType: TicksType.NONE,
-	yTicksType: TicksType.NONE,
-	topPadding: 10,
-	bottomPadding: 10,
-	leftPadding: 15,
-	rightPadding: 15,
-	graphLineThickness: mobileMedia.matches ? 1 : 2
+	viewTypes: [ViewType.LINE],
+	viewsOptions: {
+		line: {
+			thickness: mobileMedia.matches ? 1 : 2
+		}
+	},
+	xTicksOptions: {
+		type: TicksType.NONE
+	},
+	yTicksOptions: {
+		type: TicksType.NONE
+	},
+	paddingOptions: {
+		top: 10,
+		bottom: 10,
+		left: 15,
+		right: 15
+	}
 });
 
 const cursor = new Cursor();
@@ -90,8 +135,6 @@ window.addEventListener('load', () => {
 			});
 		})
 		.finally(() => {
-			cursor.observe(zoomChart);
-
 			zoombar.setUpdateListener(zoom);
 
 			themeSwitchButton.addEventListener('click', () => {
@@ -99,9 +142,21 @@ window.addEventListener('load', () => {
 			});
 
 			mobileMedia.addListener(() => {
-				zoomChart.setTicksCount(mobileMedia.matches ? 3 : 5);
-				zoomChart.setGraphLineThickness(mobileMedia.matches ? 2 : 3);
-				overviewChart.setGraphLineThickness(mobileMedia.matches ? 1 : 2);
+				zoomChart.setTicksCount(Axis.X, mobileMedia.matches ? 5 : 7);
+				zoomChart.setTicksCount(Axis.Y, mobileMedia.matches ? 5 : 7);
+				zoomChart.setTicksCount(Axis.Y_SECONDARY, mobileMedia.matches ? 5 : 7);
+
+				zoomChart.setViewsOptions({
+					line: {
+						thickness: mobileMedia.matches ? 2 : 3
+					}
+				});
+
+				overviewChart.setViewsOptions({
+					line: {
+						thickness: mobileMedia.matches ? 1 : 2
+					}
+				});
 
 				resize();
 			});
@@ -109,17 +164,42 @@ window.addEventListener('load', () => {
 			window.addEventListener('resize', resize);
 			window.addEventListener('orientationchange', resize);
 
+			let timer;
+			window.addEventListener('scroll', function() {
+				clearTimeout(timer);
+
+				if(!document.body.classList.contains('_scrolling')) {
+					document.body.classList.add('_scrolling');
+				}
+
+				timer = setTimeout(function(){
+					document.body.classList.remove('_scrolling');
+				}, SCROLLING_STATE_TIME);
+			}, false);
+
 			graphSets.forEach((set) => {
-				const container = createDiv('select__chart');
+				const container = createDivElement('select__chart');
 				const canvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
+
 				const chart = new Chart(canvas, {
-					xTicksType: TicksType.NONE,
-					yTicksType: TicksType.NONE,
-					topPadding: 5,
-					bottomPadding: 5,
-					leftPadding: 5,
-					rightPadding: 5,
-					graphLineThickness: 1
+					viewTypes: [ViewType.LINE],
+					viewsOptions: {
+						line: {
+							thickness: 1
+						}
+					},
+					xTicksOptions: {
+						type: TicksType.NONE
+					},
+					yTicksOptions: {
+						type: TicksType.NONE
+					},
+					paddingOptions: {
+						top: 5,
+						bottom: 5,
+						left: 5,
+						right: 5
+					}
 				});
 
 				set.forEach((graph) => {
@@ -144,6 +224,9 @@ window.addEventListener('load', () => {
 				selectGraphSet(graphSets[0]);
 			}
 
+			cursor.observe(zoomChart);
+			cursor.resize();
+
 			repoLink.textContent = 'https://github.com/kirilldronkin/telegram-contest-chart';
 		});
 });
@@ -162,20 +245,37 @@ function selectTheme(theme) {
 		[Theme.NIGHT]: 'Switch to Day Mode'
 	}[theme];
 
-	zoomChart.setTickLineColor({
+	Object.values(Axis)
+		.forEach((axis) => {
+			zoomChart.setTicksColor(axis , {
+				[Theme.DAY]: '#dfe7eb',
+				[Theme.NIGHT]: '#394959'
+			}[theme]);
+		});
+
+	zoomChart.setGridColor({
 		[Theme.DAY]: '#dfe7eb',
 		[Theme.NIGHT]: '#394959'
 	}[theme]);
 
-	zoomChart.setTickTextColor({
+	zoomChart.setRulerColor({
+		[Theme.DAY]: '#dfe7eb',
+		[Theme.NIGHT]: '#394959'
+	}[theme]);
+
+	zoomChart.setEmptyTextColor({
 		[Theme.DAY]: '#a9b3b9',
 		[Theme.NIGHT]: '#4c5f6f'
 	}[theme]);
 
-	zoomChart.setTickBackgroundColor({
-		[Theme.DAY]: '#ffffff',
-		[Theme.NIGHT]: '#232f3d'
-	}[theme]);
+	zoomChart.setViewsOptions({
+		line: {
+			highlightColor: {
+				[Theme.DAY]: '#ffffff',
+				[Theme.NIGHT]: '#232f3d'
+			}[theme]
+		}
+	});
 
 	zoomChart.draw();
 }
@@ -184,22 +284,21 @@ function selectTheme(theme) {
  * @param {Array<Graph>} set
  */
 function selectGraphSet(set) {
-	cursor.clear();
 	zoomChart.clear();
 	overviewChart.clear();
 
-	while (legendContainer.firstChild) {
-		legendContainer.removeChild(legendContainer.firstChild);
+	while (legendContainer.lastChild) {
+		legendContainer.removeChild(legendContainer.lastChild);
 	}
 
-	set.forEach((graph) => {
-		const checkboxContainer = createDiv();
+	set.forEach((graph, index) => {
+		const checkboxContainer = createDivElement();
 		const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
 
 		checkbox.setUpdateListener(() => {
 			if (checkbox.isChecked()) {
-				zoomChart.addGraph(graph);
-				overviewChart.addGraph(graph);
+				zoomChart.addGraph(graph, index);
+				overviewChart.addGraph(graph, index);
 			} else {
 				zoomChart.removeGraph(graph);
 				overviewChart.removeGraph(graph);
@@ -216,8 +315,8 @@ function selectGraphSet(set) {
 			zoomChart.draw();
 		});
 
-		zoomChart.addGraph(graph);
-		overviewChart.addGraph(graph);
+		zoomChart.addGraph(graph, index);
+		overviewChart.addGraph(graph, index);
 
 		legendContainer.appendChild(checkboxContainer);
 	});
@@ -246,7 +345,6 @@ function resize() {
 		chart.draw();
 	});
 
-	cursor.clear();
 	cursor.resize();
 
 	const range = zoomChart.getRange();
@@ -263,7 +361,8 @@ function zoom() {
 	const endX = overviewChart.getXByPixels(range.end);
 
 	zoomChart.setRange(startX, endX);
-	zoomChart.draw();
 
-	cursor.clear();
+	requestAnimationFrame(() => {
+		zoomChart.draw();
+	});
 }

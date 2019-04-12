@@ -1,4 +1,4 @@
-import {noop, createDiv} from '../utils.js';
+import {noop, createDivElement, getEventX} from '../utils.js';
 
 const {max, round} = Math;
 
@@ -132,11 +132,11 @@ export default class Zoombar {
 		this._container.classList.add('zoombar');
 		this._containerSize = this._container.offsetWidth;
 
-		this._leftGrip = createDiv('zoombar__grip');
-		this._leftOverlay = createDiv('zoombar__overlay');
-		this._pan = createDiv('zoombar__pan');
-		this._rightGrip = createDiv('zoombar__grip');
-		this._rightOverlay = createDiv('zoombar__overlay');
+		this._leftGrip = createDivElement('zoombar__grip');
+		this._leftOverlay = createDivElement('zoombar__overlay');
+		this._pan = createDivElement('zoombar__pan');
+		this._rightGrip = createDivElement('zoombar__grip');
+		this._rightOverlay = createDivElement('zoombar__overlay');
 
 		this._container.appendChild(this._leftOverlay);
 		this._container.appendChild(this._leftGrip);
@@ -299,24 +299,6 @@ export default class Zoombar {
 
 		this._updateListener();
 	}
-}
-
-/**
- * @param {MouseEvent|TouchEvent} event
- * @param {HTMLElement} target
- * @return {number}
- */
-function getEventX(event, target) {
-	if (!event.touches) {
-		return event.clientX;
-	}
-
-	const touch = Array.from(event.touches).find((touch) => touch.target === target);
-	if (touch) {
-		return touch.clientX;
-	}
-
-	return NaN;
 }
 
 /**
