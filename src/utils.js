@@ -139,6 +139,20 @@ function createDivElement(className, text) {
 }
 
 /**
+ * @param {string=} className
+ * @returns {HTMLCanvasElement}
+ */
+function createCanvasElement(className) {
+	const canvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
+
+	if (className) {
+		canvas.classList.add(className);
+	}
+
+	return canvas;
+}
+
+/**
  * @param {string} hex
  * @param {number} alpha
  * @return {string}
@@ -357,6 +371,7 @@ export {
 	getEventX,
 	getEventY,
 	createDivElement,
+	createCanvasElement,
 	hexToRGB,
 	clamp,
 	findMax,

@@ -96,6 +96,8 @@ export default class Zoombar {
 
 	resize() {
 		this._containerSize = this._container.offsetWidth;
+		this._leftGripSize = this._leftGrip.offsetWidth;
+		this._rightGripSize = this._rightGrip.offsetWidth;
 	}
 
 	/**
@@ -143,10 +145,6 @@ export default class Zoombar {
 		this._container.appendChild(this._pan);
 		this._container.appendChild(this._rightGrip);
 		this._container.appendChild(this._rightOverlay);
-
-		// Fixed sizes
-		this._leftGripSize = this._leftGrip.offsetWidth;
-		this._rightGripSize = this._rightGrip.offsetWidth;
 	}
 
 	/**

@@ -9,37 +9,6 @@ body._scrolling {
 	pointer-events: none;
 }
 
-#title {
-	margin-top: 20px;
-	font-size: 20px;
-	font-weight: bold;
-}
-
-#zoom-chart {
-	position: relative;
-	height: 500px;
-	margin-top: 20px;
-}
-
-#overview-chart {
-	position: relative;
-	height: 100px;
-	margin-top: 20px;
-}
-
-#legend {
-	margin-top: 20px;
-}
-
-#legend .checkbox {
-	margin-top: 10px;
-	margin-right: 10px;
-}
-
-#legend .checkbox:last-child {
-	margin-right: 0;
-}
-
 #theme-switch-button {
 	color: #22a8ee;
 	text-align: center;
@@ -57,19 +26,38 @@ body._scrolling {
 	text-align: center;
 }
 
-.select__chart {
-	position: relative;
-	display: inline-block;
-	width: 19%;
-	height: 50px;
-	margin-right: 1.25%;
-	cursor: pointer;
-	box-sizing: border-box;
-	padding-bottom: 5px;
-	border: 1px solid transparent;
+.pane {
+	margin: 0 20% 50px 20%;
 }
 
-.select__chart:last-child {
+.pane__title {
+	margin-top: 20px;
+	font-size: 20px;
+	font-weight: bold;
+}
+
+.pane__zoom-chart {
+	position: relative;
+	height: 500px;
+	margin-top: 20px;
+}
+
+.pane__overview-chart {
+	position: relative;
+	height: 100px;
+	margin-top: 20px;
+}
+
+.pane__legend {
+	margin-top: 20px;
+}
+
+.pane__legend .checkbox {
+	margin-top: 10px;
+	margin-right: 10px;
+}
+
+.pane__legend .checkbox:last-child {
 	margin-right: 0;
 }
 
@@ -105,7 +93,7 @@ body._scrolling {
 	width: 15px;
 	height: 100%;
 	opacity: 0.8;
-	cursor: col-resize;
+	cursor: ew-resize;
 }
 
 .zoombar__overlay {
@@ -202,10 +190,10 @@ body._scrolling {
 }
 
 .toolbar {
-	white-space: nowrap;
 	position: absolute;
 	top: 0;
 	left: 0;
+	box-sizing: border-box;
 	border: 1px solid;
 	border-radius: 5px;
 	box-shadow: 0 1px 3px 1px ;
@@ -220,12 +208,9 @@ body._scrolling {
 	font-weight: bold;
 }
 
-.toolbar__items {
-	margin-top: 10px;
-}
-
 .toolbar__item {
 	display: inline-block;
+	margin-top: 15px;
 	margin-right: 15px;
 }
 
@@ -292,15 +277,15 @@ body._scrolling {
 }
 
 @media only screen and (max-width: 480px) and (orientation: portrait) {
-	#zoom-chart {
+	.pane {
+		margin: 0;
+	}
+
+	.pane__zoom-chart {
 		height: 300px;
 	}
 
-	#overview-chart {
+	.pane__overview-chart {
 		height: 70px;
-	}
-
-	.select__chart {
-		height: 25px;
 	}
 }

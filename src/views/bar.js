@@ -1,6 +1,7 @@
 import IView from '../interfaces/i-view.js';
 import IScale from '../interfaces/i-scale.js';
 import {InterpolationType} from '../graph.js';
+import {Timing} from '../transition.js';
 import {findMin, findMax, identity, hexToRGB} from '../utils.js';
 
 const {round} = Math;
@@ -71,6 +72,19 @@ export default class Bar {
 		return InterpolationType.NEIGHBOR;
 	}
 
+	/**
+	 * @return {Timing}
+	 */
+	getFadeInTransitionTiming() {
+		return Timing.LINEAR;
+	}
+
+	/**
+	 * @return {Timing}
+	 */
+	getFadeOutTransitionTiming() {
+		return Timing.LINEAR;
+	}
 
 	/**
 	 * @override
@@ -105,7 +119,7 @@ export default class Bar {
 		let yScaleEnd = this._yScale.getEnd();
 
 		for (let i = 0; i < graph.points.length; i++) {
-			const ySum = otherGraphs.concat(graph)
+			const ySum = [graph].concat(otherGraphs)
 				.reduce((acc, someGraph) => acc + someGraph.points[i].y, 0);
 
 			if (isNaN(yScaleEnd) || ySum > yScaleEnd) {
@@ -123,7 +137,7 @@ export default class Bar {
 			let yScaleRangeEnd = this._yScale.getRangeEnd();
 
 			for (let i = 0; i < range.length; i++) {
-				const ySum = otherRanges.concat(range)
+				const ySum = [range].concat(otherRanges)
 					.reduce((acc, range) => acc + range[i].y, 0);
 
 				if (isNaN(yScaleRangeEnd) || ySum > yScaleRangeEnd) {

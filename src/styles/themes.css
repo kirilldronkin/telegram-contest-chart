@@ -4,17 +4,9 @@ body._day {
 	background: #fff;
 }
 
-body._day #title,
+body._day .pane__title,
 body._day #repo-link {
 	color: #101010;
-}
-
-body._day .select__chart:hover {
-	background: #a9b3b9;
-}
-
-body._day .select__chart._active {
-	border-color: #a9b3b9;
 }
 
 body._day .zoombar__pan {
@@ -53,17 +45,9 @@ body._night {
 	background: #232f3d;
 }
 
-body._night #title,
+body._night .pane__title,
 body._night #repo-link {
 	color: #fff;
-}
-
-body._night .select__chart:hover {
-	background: #4c5f6f;
-}
-
-body._night .select__chart._active {
-	border-color: #4c5f6f;
 }
 
 body._night .zoombar__pan {

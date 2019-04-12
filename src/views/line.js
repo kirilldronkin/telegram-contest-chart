@@ -1,6 +1,7 @@
 import IView from '../interfaces/i-view.js';
 import IScale from '../interfaces/i-scale.js';
 import {InterpolationType} from '../graph.js';
+import {Timing} from '../transition.js';
 import {findMax, findMin, hexToRGB, identity} from '../utils.js';
 
 /**
@@ -99,6 +100,20 @@ export default class Line {
 	 */
 	getInterpolationType() {
 		return InterpolationType.LINEAR;
+	}
+
+	/**
+	 * @return {Timing}
+	 */
+	getFadeInTransitionTiming() {
+		return Timing.EASE_OUT;
+	}
+
+	/**
+	 * @return {Timing}
+	 */
+	getFadeOutTransitionTiming() {
+		return Timing.EASE_IN;
 	}
 
 	/**
@@ -283,8 +298,6 @@ export default class Line {
 			const range = getGraphRange(graph);
 			const visibility = getGraphVisibility(graph);
 
-			let lastDrawnXPixels;
-
 			this._context.beginPath();
 
 			this._context.strokeStyle = hexToRGB(graph.color, visibility);
@@ -294,15 +307,10 @@ export default class Line {
 				const xPixels = this._xScale.getPixelsByValue(point.x);
 				const yPixels = this._yScale.getPixelsByValue(point.y);
 
-				// Decimate redundant points
-				if (!lastDrawnXPixels || lastDrawnXPixels !== xPixels) {
-					if (index === 0) {
-						this._context.moveTo(xPixels, yPixels);
-					} else {
-						this._context.lineTo(xPixels, yPixels);
-					}
-
-					lastDrawnXPixels = xPixels;
+				if (index === 0) {
+					this._context.moveTo(xPixels, yPixels);
+				} else {
+					this._context.lineTo(xPixels, yPixels);
 				}
 			});
 

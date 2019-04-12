@@ -1,4 +1,5 @@
 const fs = require('fs');
+const fsExtra = require('fs-extra');
 const path = require('path');
 const postcss = require('postcss');
 const autoprefixer = require('autoprefixer');
@@ -56,4 +57,4 @@ const indexHTML = fs.readFileSync(path.join(rootPath, 'index.html.tpl'), 'utf-8'
 	.replace(/\n\s*/g, '');
 
 fs.writeFileSync(path.join(distPath, 'index.html'), indexHTML, 'utf-8');
-fs.copyFileSync(path.join(rootPath, 'data.json'), path.join(distPath, 'data.json'));
+fsExtra.copySync(path.join(rootPath, 'data'), path.join(distPath, 'data'));

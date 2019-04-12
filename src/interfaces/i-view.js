@@ -1,5 +1,6 @@
 import Point from '../point.js';
 import Graph, {InterpolationType} from '../graph.js';
+import {Timing} from '../transition.js';
 
 /**
  * @typedef {{
@@ -24,6 +25,16 @@ export default class IView {
 	 * @return {InterpolationType}
 	 */
 	getInterpolationType() {}
+
+	/**
+	 * @return {Timing}
+	 */
+	getFadeInTransitionTiming() {}
+
+	/**
+	 * @return {Timing}
+	 */
+	getFadeOutTransitionTiming() {}
 
 	/**
 	 * @param {Point} start

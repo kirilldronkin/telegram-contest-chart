@@ -22,12 +22,12 @@ const {min, max} = Math;
 /**
  * @const {number}
  */
-const GRAPH_FADE_DURATION = 200;
+const GRAPH_FADE_DURATION = 250;
 
 /**
  * @const {number}
  */
-const Y_AXIS_SCALE_DURATION = 200;
+const Y_AXIS_SCALE_DURATION = 250;
 
 /**
  * @const {number}
@@ -178,11 +178,33 @@ let EmptyTextOptions;
  */
 let EmptyTextOptionsPartial;
 
+/**
+ * @typedef {{
+ *     viewTypes: (Array<ViewType>|undefined),
+ *     viewsOptions: (ViewsOptions|undefined),
+ *     paddingOptions: (PaddingOptionsPartial|undefined),
+ *     xTicksOptions: (XTicksOptionsPartial|undefined),
+ *     yTicksOptions: (YTicksOptionsPartial|undefined),
+ *     ySecondaryViews: (Array<number>|undefined),
+ *     ySecondaryTicksOptions: (YTicksOptionsPartial|undefined),
+ *     gridOptions: (LineOptionsPartial|undefined),
+ *     rulerOptions: (LineOptionsPartial|undefined),
+ *     emptyTextOptions: (EmptyTextOptionsPartial|undefined)
+ * }}
+ */
+export let Options;
+
+/**
+ * @type {ViewsOptions}
+ */
 const defaultViewsOptions = {
 	line: undefined,
 	bar: undefined
 };
 
+/**
+ * @type {PaddingOptions}
+ */
 const defaultPaddingOptions = {
 	top: 0,
 	right: 0,
@@ -190,6 +212,9 @@ const defaultPaddingOptions = {
 	left: 0
 };
 
+/**
+ * @type {XTicksOptions}
+ */
 const defaultXTicksOptions = {
 	type: TicksType.DECIMAL,
 	count: 10,
@@ -199,6 +224,9 @@ const defaultXTicksOptions = {
 	font: 'Arial, Helvetica, sans-serif'
 };
 
+/**
+ * @type {YTicksOptions}
+ */
 const defaultYTicksOptions = {
 	type: TicksType.DECIMAL,
 	count: 10,
@@ -209,12 +237,18 @@ const defaultYTicksOptions = {
 	nice: true
 };
 
+/**
+ * @type {LineOptions}
+ */
 const defaultLineOptions = {
 	thickness: 1,
 	color: '#000000',
 	alpha: 1
 };
 
+/**
+ * @type {EmptyTextOptions}
+ */
 const defaultEmptyTextOptions = {
 	text: '',
 	color: '#000000',
@@ -225,18 +259,7 @@ const defaultEmptyTextOptions = {
 export default class Chart {
 	/**
 	 * @param {HTMLCanvasElement} canvas
-	 * @param {{
-	 *     viewTypes: (Array<ViewType>|undefined),
-	 *     viewsOptions: (ViewsOptions|undefined),
-	 *     paddingOptions: (PaddingOptionsPartial|undefined),
-	 *     xTicksOptions: (XTicksOptionsPartial|undefined),
-	 *     yTicksOptions: (YTicksOptionsPartial|undefined),
-	 *     ySecondaryViews: (Array<number>|undefined),
-	 *     ySecondaryTicksOptions: (YTicksOptionsPartial|undefined),
-	 *     gridOptions: (LineOptionsPartial|undefined),
-	 *     rulerOptions: (LineOptionsPartial|undefined),
-	 *     emptyTextOptions: (EmptyTextOptionsPartial|undefined)
-	 * }=} opt
+	 * @param {Options=} opt
 	 */
 	constructor(canvas, {
 		viewTypes = [],
@@ -1400,10 +1423,11 @@ export default class Chart {
 	 * @private
 	 */
 	_setupAddingGraphTransition(graph) {
+		const view = this._graphToView.get(graph);
 		const visibilityInterval = {from: this._graphToVisibility.get(graph), to: 1};
 
 		const transition = new Transition({
-			timing: Timing.EASE_OUT,
+			timing: view.getFadeInTransitionTiming(),
 			duration: GRAPH_FADE_DURATION,
 			intervals: [visibilityInterval],
 
@@ -1428,10 +1452,11 @@ export default class Chart {
 	 * @private
 	 */
 	_setupRemovingGraphTransition(graph) {
+		const view = this._graphToView.get(graph);
 		const visibilityInterval = {from: this._graphToVisibility.get(graph), to: 0};
 
 		const transition = new Transition({
-			timing: Timing.EASE_IN,
+			timing: view.getFadeOutTransitionTiming(),
 			duration: GRAPH_FADE_DURATION,
 			intervals: [visibilityInterval],
 

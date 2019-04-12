@@ -9,22 +9,13 @@
 		%STYLES%
 	</head>
 	<body>
-		<div id="select"></div>
-		<div id="title"></div>
+		<div id="panes"></div>
 
-		<div id="zoom-chart">
-			<canvas id="zoom-chart-canvas"></canvas>
-		</div>
-
-		<div id="overview-chart">
-			<canvas id="overview-chart-canvas"></canvas>
-			<div id="zoombar"></div>
-		</div>
-
-		<div id="legend"></div>
 		<div id="theme-switch-button"></div>
 
-		<a id="repo-link" href="https://github.com/kirilldronkin/telegram-contest-chart" target="_blank"></a>
+		<a id="repo-link" href="https://github.com/kirilldronkin/telegram-contest-chart" target="_blank">
+			https://github.com/kirilldronkin/telegram-contest-chart
+		</a>
 
 		%SCRIPTS%
 	</body>

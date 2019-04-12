@@ -133,6 +133,8 @@ export default class Cursor {
 		this._canvas.addEventListener('touchmove', this._onMoveBinded);
 		this._canvas.addEventListener('mouseleave', this._onMouseLeaveBinded);
 		this._canvas.addEventListener('touchend', this._onTouchEndBinded);
+
+		this._hideToolbar();
 	}
 
 	resize() {
