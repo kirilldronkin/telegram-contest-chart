@@ -5,6 +5,7 @@ body._day {
 }
 
 body._day .pane__title,
+body._day .pane__range,
 body._day #repo-link {
 	color: #101010;
 }
@@ -46,6 +47,7 @@ body._night {
 }
 
 body._night .pane__title,
+body._night .pane__range,
 body._night #repo-link {
 	color: #fff;
 }

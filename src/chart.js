@@ -725,8 +725,6 @@ export default class Chart {
 		} else if (view instanceof BarView) {
 			return ViewType.BAR;
 		}
-
-		throw new Error('Unknown view type');
 	}
 
 	/**
@@ -742,7 +740,35 @@ export default class Chart {
 	 * @return {TicksType}
 	 */
 	getAxisTicksType(axis) {
-		return axis === Axis.X ? this._xTicksOptions.type : this._yTicksOptions.type;
+		if (axis === Axis.X) {
+			return this._xTicksOptions.type;
+		}
+
+		if (axis === Axis.Y) {
+			return this._yTicksOptions.type;
+		}
+
+		if (axis === Axis.Y_SECONDARY) {
+			return this._ySecondaryTicksOptions.type;
+		}
+	}
+
+	/**
+	 * @param {Axis} axis
+	 * @return {number}
+	 */
+	getAxisTicksSpacing(axis) {
+		if (axis === Axis.X) {
+			return this._xScale.getTicksSpacing();
+		}
+
+		if (axis === Axis.Y) {
+			return this._yScale.getTicksSpacing();
+		}
+
+		if (axis === Axis.Y_SECONDARY) {
+			return this._ySecondaryScale ? this._ySecondaryScale.getTicksSpacing() : NaN;
+		}
 	}
 
 	/**
@@ -874,9 +900,10 @@ export default class Chart {
 
 					const end = range.find((point) => point.x > middle.x) || middle;
 					const start = range[range.indexOf(end) - 1];
-					const highlighted = view.selectHighlightedPoint(start, middle, end);
 
-					this._graphToHighlightedPoint.set(graph, highlighted);
+					if (start && end) {
+						this._graphToHighlightedPoint.set(graph, view.selectHighlightedPoint(start, middle, end));
+					}
 				});
 		});
 	}

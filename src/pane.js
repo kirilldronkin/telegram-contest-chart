@@ -4,7 +4,7 @@ import Chart, {Axis, ViewType, TicksType, Options as ChartOptions} from './chart
 import Cursor from './cursor.js';
 import Zoombar from './ui/zoombar.js';
 import Checkbox from './ui/checkbox.js';
-import {createDivElement, createCanvasElement, merge} from './utils.js';
+import {createDivElement, merge, throttle, debounce, formatDay, getShortWeekDayName} from './utils.js';
 
 /**
  * @const {string}
@@ -15,6 +15,11 @@ const MOBILE_MEDIA_QUERY = 'only screen and (max-width: 480px) and (orientation:
  * @const {number}
  */
 const ZOOMBAR_GRIP_SIZE = 15;
+
+/**
+ * @const {number}
+ */
+const RANGE_RENDER_BACKPRESSURE_TIME = 100;
 
 /**
  * @enum {string}
@@ -90,15 +95,17 @@ export default class Pane {
 	 * @param {LayoutType} layoutType
 	 */
 	constructor(title, graphs, layoutType) {
-		const zoomChartCanvas = createCanvasElement();
 		const zoomChartContainer = createDivElement('pane__zoom-chart');
 		const zoomChartOptions = /** @type {ChartOptions} */ (merge({}, defaultZoomChartOptions));
+		const zoomChartCanvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
 
-		const overviewChartCanvas = createCanvasElement();
 		const overviewChartContainer = createDivElement('pane__overview-chart');
 		const overviewChartOptions =/** @type {ChartOptions} */ ( merge({}, defaultOverviewChartOptions));
+		const overviewChartCanvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
 
+		const headElement = createDivElement('pane__head');
 		const titleElement = createDivElement('pane__title', title);
+		const zoomRangeElement = createDivElement('pane__range');
 		const legendElement = createDivElement('pane__legend');
 
 		const zoombarContainer = createDivElement();
@@ -182,18 +189,39 @@ export default class Pane {
 		 * @type {HTMLDivElement}
 		 * @private
 		 */
-		this._legend = legendElement;
+		this._zoomRangeElement = zoomRangeElement;
+
+		/**
+		 * @type {HTMLDivElement}
+		 * @private
+		 */
+		this._legendElement = legendElement;
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
+		this._renderZoomRangeThrottled = throttle(this._renderZoomRange.bind(this), RANGE_RENDER_BACKPRESSURE_TIME);
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
+		this._renderZoomRangeDebounced = debounce(this._renderZoomRange.bind(this), RANGE_RENDER_BACKPRESSURE_TIME);
 
 		zoomChartContainer.appendChild(zoomChartCanvas);
 
 		overviewChartContainer.appendChild(overviewChartCanvas);
 		overviewChartContainer.appendChild(zoombarContainer);
 
-		this._container.appendChild(titleElement);
+		headElement.appendChild(titleElement);
+		headElement.appendChild(zoomRangeElement);
+
+		this._container.appendChild(headElement);
 		this._container.appendChild(zoomChartContainer);
 		this._container.appendChild(overviewChartContainer);
 
-		this._container.appendChild(this._legend);
+		this._container.appendChild(this._legendElement);
 	}
 
 	/**
@@ -216,7 +244,7 @@ export default class Pane {
 			this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
 			this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
 
-			this._legend.appendChild(checkboxContainer);
+			this._legendElement.appendChild(checkboxContainer);
 		});
 
 		parent.appendChild(this._container);
@@ -235,6 +263,8 @@ export default class Pane {
 
 		this._zoombar.resize();
 		this._zoombar.setRange(ZOOMBAR_GRIP_SIZE, this._zoombarContainer.offsetWidth - ZOOMBAR_GRIP_SIZE);
+
+		this._renderZoomRange();
 	}
 
 	/**
@@ -352,6 +382,34 @@ export default class Pane {
 	/**
 	 * @private
 	 */
+	_renderZoomRange() {
+		const range = this._zoomChart.getRange();
+
+		if (range.start === range.end) {
+			this._zoomRangeElement.textContent = '';
+
+			return;
+		}
+
+		const startDate = new Date(range.start);
+		const startText = formatDay(startDate);
+
+		const endDate = new Date(range.end);
+		const endText = formatDay(endDate);
+
+		let rangeText;
+		if (startText === endText) {
+			rangeText = `${getShortWeekDayName(startDate.getDay())}, ${startText}`;
+		} else {
+			rangeText = `${startText} - ${endText}`;
+		}
+
+		this._zoomRangeElement.textContent = rangeText;
+	}
+
+	/**
+	 * @private
+	 */
 	_resize() {
 		this._zoomChart.resize();
 		this._zoomChart.draw();
@@ -378,6 +436,9 @@ export default class Pane {
 		const endX = this._overviewChart.getXByPixels(range.end);
 
 		this._zoomChart.setRange(startX, endX);
+
+		this._renderZoomRangeThrottled();
+		this._renderZoomRangeDebounced();
 
 		requestAnimationFrame(() => {
 			this._zoomChart.draw();

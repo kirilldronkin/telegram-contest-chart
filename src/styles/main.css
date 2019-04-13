@@ -32,10 +32,27 @@ body._scrolling {
 	margin-right: 20%;
 }
 
-.pane__title {
+.pane__head {
 	margin-top: 20px;
+	line-height: 20px;
+}
+
+.pane__head::after {
+	content: "";
+	clear: both;
+	display: table;
+}
+
+.pane__title {
 	font-size: 20px;
 	font-weight: bold;
+	float: left;
+}
+
+.pane__range {
+	font-size: 15px;
+	font-weight: bold;
+	float: right;
 }
 
 .pane__zoom-chart {

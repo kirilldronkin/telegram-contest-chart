@@ -132,8 +132,8 @@ function isPassiveEventsSupported() {
 				}
 			};
 
-			window.addEventListener('test', options, options);
-			window.removeEventListener('test', options, options);
+			window.addEventListener('test', noop, options);
+			window.removeEventListener('test', noop, options);
 		} catch(err) {
 			passiveEventsSupported = false;
 		}
@@ -159,20 +159,6 @@ function createDivElement(className, text) {
 	}
 
 	return div;
-}
-
-/**
- * @param {string=} className
- * @returns {HTMLCanvasElement}
- */
-function createCanvasElement(className) {
-	const canvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
-
-	if (className) {
-		canvas.classList.add(className);
-	}
-
-	return canvas;
 }
 
 /**
@@ -318,7 +304,17 @@ function compactNumber(value) {
 function getShortMonthName(index) {
 	const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-	return names[index] || 'Unknown';
+	return names[index] || 'Invalid';
+}
+
+/**
+ * @param {number} index
+ * @return {string}
+ */
+function getShortWeekDayName(index) {
+	const names = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'];
+
+	return names[index] || 'Invalid';
 }
 
 /**
@@ -365,6 +361,14 @@ function formatDate(date, unit) {
 }
 
 /**
+ * @param {Date} date
+ * @return {string}
+ */
+function formatDay(date) {
+	return `${getShortMonthName(date.getMonth())} ${date.getDate()} ${date.getFullYear()}`;
+}
+
+/**
  * @enum {string}
  */
 const DateUnit = {
@@ -395,7 +399,6 @@ export {
 	getEventY,
 	isPassiveEventsSupported,
 	createDivElement,
-	createCanvasElement,
 	hexToRGB,
 	clamp,
 	findMax,
@@ -405,8 +408,10 @@ export {
 	niceNumber,
 	compactNumber,
 	getShortMonthName,
+	getShortWeekDayName,
 	to12Hours,
 	formatDate,
+	formatDay,
 	DateUnit,
 	NotImplementedError
 };

@@ -10,8 +10,9 @@ import {
 	getEventX,
 	getEventY,
 	isPassiveEventsSupported,
-	formatDate,
-	DateUnit
+	formatDay,
+	to12Hours,
+	getShortWeekDayName
 } from './utils.js';
 
 /**
@@ -186,8 +187,15 @@ export default class Cursor {
 	_fillToolbar(x, graphToHighlightedPoint) {
 		let title;
 		if (this._chart.getAxisTicksType(Axis.X) === TicksType.DATE) {
-			// TODO: resolve the proper date unit and mixin day of week
-			title = formatDate(new Date(x), DateUnit.DAY);
+			const xDate = new Date(x);
+			const ticksSpacing = this._chart.getAxisTicksSpacing(Axis.X);
+			const msInDay = 100 * 60 * 60 * 24;
+
+			if (ticksSpacing / msInDay >= 1) {
+				title = `${getShortWeekDayName(xDate.getDay())}, ${formatDay(xDate)}`;
+			} else {
+				title = to12Hours(xDate);
+			}
 		} else {
 			title = String(x);
 		}
@@ -262,6 +270,10 @@ export default class Cursor {
 				graphToHighlightedPoint.set(graph, highlightedPoint);
 			}
 		});
+
+		if (!graphToHighlightedPoint.size) {
+			return;
+		}
 
 		const rulerXs = [];
 
