@@ -301,7 +301,6 @@ export default class Line {
 			this._context.beginPath();
 
 			this._context.strokeStyle = hexToRGB(graph.color, visibility);
-			this._context.strokeStyle = hexToRGB(graph.color, visibility);
 
 			range.forEach((point, index) => {
 				const xPixels = this._xScale.getPixelsByValue(point.x);
@@ -315,7 +314,10 @@ export default class Line {
 			});
 
 			this._context.stroke();
+		});
 
+		graphs.forEach((graph) => {
+			const visibility = getGraphVisibility(graph);
 			const highlightedPoint = getGraphHighlightedPoint(graph);
 
 			if (highlightedPoint) {
@@ -323,6 +325,7 @@ export default class Line {
 				const yPixels = this._yScale.getPixelsByValue(highlightedPoint.y);
 
 				this._context.fillStyle = hexToRGB(this._highlightColor, visibility);
+				this._context.strokeStyle = hexToRGB(graph.color, visibility);
 
 				this._context.beginPath();
 				this._context.arc(xPixels, yPixels, this._highlightRadius, 0, 2 * Math.PI);
