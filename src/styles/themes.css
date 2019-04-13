@@ -7,43 +7,31 @@ body._day {
 body._day .pane__title,
 body._day .pane__range,
 body._day #repo-link {
-	color: #101010;
+	color: #000;
 }
 
 body._day .zoombar__pan {
-	border-color: #a9b3b9;
+	border-color: #c0d1e1;
 }
 
+body._day .zoombar__grip::before {
+	background: #c0d1e1;
+}
+
+body._day .zoombar__overlay,
 body._day .zoombar__grip {
-	background: #a9b3b9;
-}
-
-body._day .zoombar__overlay {
-	background: #a9b3b9;
-}
-
-body._day .checkbox {
-	border-color: #a9b3b9;
-}
-
-body._day .checkbox__text {
-	color: #101010;
+	background: rgba(226, 238, 249, .6);
 }
 
 body._day .toolbar {
-	color: #e7e7e7;
+	color: #000;
 	background: #fff;
-	border-color: #a9b3b9;
-}
-
-body._day .toolbar__title {
-	color: #101010;
 }
 
 /* Night */
 
 body._night {
-	background: #232f3d;
+	background: #242f3e;
 }
 
 body._night .pane__title,
@@ -53,31 +41,19 @@ body._night #repo-link {
 }
 
 body._night .zoombar__pan {
-	border-color: #4c5f6f;
+	border-color: #56626d;
 }
 
+body._night .zoombar__grip::before {
+	background: #56626d;
+}
+
+body._night .zoombar__overlay,
 body._night .zoombar__grip {
-	background: #4c5f6f;
-}
-
-body._night .zoombar__overlay {
-	background: #4c5f6f;
-}
-
-body._night .checkbox {
-	border-color: #4c5f6f;
-}
-
-body._night .checkbox__text {
-	color: #fff;
+	background: rgba(48, 66, 89, .6);
 }
 
 body._night .toolbar {
-	color: #2a2a2a;
-	background: #232f3d;
-	border-color: #202b38;
-}
-
-body._night .toolbar__title {
 	color: #fff;
+	background: #1c2533;
 }

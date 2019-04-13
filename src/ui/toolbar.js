@@ -49,12 +49,12 @@ export default class Toolbar {
 
 		items.forEach(({title, value, color}) => {
 			const itemElement = createDivElement('toolbar__item');
-			const valueElement = createDivElement('toolbar__item-value', value);
 			const titleElement = createDivElement('toolbar__item-title', title);
+			const valueElement = createDivElement('toolbar__item-value', value);
 
-			itemElement.style.color = color;
-			itemElement.appendChild(valueElement);
+			valueElement.style.color = color;
 			itemElement.appendChild(titleElement);
+			itemElement.appendChild(valueElement);
 
 			fragment.appendChild(itemElement);
 		});

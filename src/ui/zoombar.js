@@ -134,11 +134,11 @@ export default class Zoombar {
 		this._container.classList.add('zoombar');
 		this._containerSize = this._container.offsetWidth;
 
-		this._leftGrip = createDivElement('zoombar__grip');
-		this._leftOverlay = createDivElement('zoombar__overlay');
+		this._leftGrip = createDivElement('zoombar__grip _left');
+		this._leftOverlay = createDivElement('zoombar__overlay _left');
 		this._pan = createDivElement('zoombar__pan');
-		this._rightGrip = createDivElement('zoombar__grip');
-		this._rightOverlay = createDivElement('zoombar__overlay');
+		this._rightGrip = createDivElement('zoombar__grip _right');
+		this._rightOverlay = createDivElement('zoombar__overlay _right');
 
 		this._container.appendChild(this._leftOverlay);
 		this._container.appendChild(this._leftGrip);

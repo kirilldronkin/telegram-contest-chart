@@ -67,6 +67,17 @@ async function onLoad() {
 				values.map((value, index) => new Point(xs[index], value)))
 		);
 
+		let /** @type {string} */ title;
+		if (datasetIndex === 0) {
+			title = 'Followers';
+		} else if (datasetIndex === 1) {
+			title = 'Interactions';
+		} else if (datasetIndex === 2) {
+			title = 'Messages';
+		} else if (datasetIndex === 3) {
+			title = 'Apps';
+		}
+
 		let /** @type {PaneLayoutType} */ layout;
 		if (datasetIndex === 0) {
 			layout = PaneLayoutType.LINE;
@@ -76,7 +87,7 @@ async function onLoad() {
 			layout = PaneLayoutType.BAR;
 		}
 
-		const pane = new Pane(`Chart #${datasetIndex + 1}`, graphs, layout);
+		const pane = new Pane(title, graphs, layout);
 
 		pane.init(panesContainer, currentTheme);
 

@@ -1,6 +1,6 @@
 import Point from './point.js';
 import Graph from './graph.js';
-import Transition, {Timing} from './transition.js';
+import Transition from './transition.js';
 import IScale from './interfaces/i-scale.js';
 import IView, {Helpers as ViewHelpers} from './interfaces/i-view.js';
 import XLinearScale from './scales/x-linear.js';
@@ -8,6 +8,7 @@ import YLinearScale from './scales/y-linear.js';
 import LineView, {Options as LineViewOptions} from './views/line.js';
 import BarView, {Options as BarViewOptions} from './views/bar.js';
 import {
+	clamp,
 	unique,
 	pull,
 	merge,
@@ -675,6 +676,24 @@ export default class Chart {
 	}
 
 	/**
+	 * @param {Axis} axis
+	 * @param {number} alpha
+	 */
+	setTicksAlpha(axis, alpha) {
+		if (axis === Axis.X) {
+			this._xTicksOptions.alpha = alpha;
+		}
+
+		if (axis === Axis.Y) {
+			this._yTicksOptions.alpha = alpha;
+		}
+
+		if (axis === Axis.Y_SECONDARY) {
+			this._ySecondaryTicksOptions.alpha = alpha;
+		}
+	}
+
+	/**
 	 * @param {string} color
 	 */
 	setGridColor(color) {
@@ -1211,11 +1230,11 @@ export default class Chart {
 					const tickIndex = this._xTicks.indexOf(tick);
 
 					const middleTick = tick + (ticksSpacing / 2);
-					const middleTickAlpha = (ticksCount - 1) - actualTicksCount;
+					const middleTickVisibility = clamp((ticksCount - 1) - actualTicksCount, 0, 1);
 
 					if (middleTick < scaleFitEnd) {
 						this._xTicks.splice(tickIndex, 1, tick, middleTick);
-						this._xTickToVisibility.set(middleTick, middleTickAlpha);
+						this._xTickToVisibility.set(middleTick, middleTickVisibility);
 					}
 				});
 		}

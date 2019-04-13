@@ -14,7 +14,7 @@ const MOBILE_MEDIA_QUERY = 'only screen and (max-width: 480px) and (orientation:
 /**
  * @const {number}
  */
-const ZOOMBAR_GRIP_SIZE = 15;
+const ZOOMBAR_GRIP_SIZE = 10;
 
 /**
  * @const {number}
@@ -36,34 +36,39 @@ export const LayoutType = {
 const defaultZoomChartOptions = {
 	viewsOptions: {
 		line: {
-			highlightRadius: 8
+			highlightRadius: 5
+		},
+		bar: {
+			highlightDimmingAlpha: 0.5
 		}
 	},
 	paddingOptions: {
-		top: 20,
-		bottom: 40
+		top: 15,
+		bottom: 25
 	},
 	xTicksOptions: {
 		type: TicksType.DATE,
-		size: 15
+		size: 11
 	},
 	yTicksOptions: {
 		type: TicksType.COMPACT,
-		size: 15
+		count: 6,
+		size: 11
 	},
 	ySecondaryTicksOptions: {
 		type: TicksType.COMPACT,
-		size: 15
+		count: 6,
+		size: 11
 	},
 	gridOptions: {
-		alpha: 0.5
+		alpha: 0.1
 	},
 	rulerOptions: {
-		alpha: 0.5
+		alpha: 0.1
 	},
 	emptyTextOptions: {
-		text: 'No data',
-		size: 20
+		text: 'Nothing to show',
+		size: 13
 	}
 };
 
@@ -72,10 +77,10 @@ const defaultZoomChartOptions = {
  */
 const defaultOverviewChartOptions = {
 	paddingOptions: {
-		top: 10,
-		bottom: 10,
-		left: 15,
-		right: 15
+		top: 2,
+		bottom: 2,
+		left: 10,
+		right: 10
 	},
 	xTicksOptions: {
 		type: TicksType.NONE
@@ -103,7 +108,7 @@ export default class Pane {
 		const overviewChartOptions =/** @type {ChartOptions} */ ( merge({}, defaultOverviewChartOptions));
 		const overviewChartCanvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
 
-		const headElement = createDivElement('pane__head');
+		const headerElement = createDivElement('pane__header');
 		const titleElement = createDivElement('pane__title', title);
 		const zoomRangeElement = createDivElement('pane__range');
 		const legendElement = createDivElement('pane__legend');
@@ -214,10 +219,10 @@ export default class Pane {
 		overviewChartContainer.appendChild(overviewChartCanvas);
 		overviewChartContainer.appendChild(zoombarContainer);
 
-		headElement.appendChild(titleElement);
-		headElement.appendChild(zoomRangeElement);
+		headerElement.appendChild(titleElement);
+		headerElement.appendChild(zoomRangeElement);
 
-		this._container.appendChild(headElement);
+		this._container.appendChild(headerElement);
 		this._container.appendChild(zoomChartContainer);
 		this._container.appendChild(overviewChartContainer);
 
@@ -301,6 +306,8 @@ export default class Pane {
 		);
 
 		this._zoomChart.draw();
+
+		this._renderZoomRange();
 	}
 
 	/**
@@ -308,8 +315,6 @@ export default class Pane {
 	 */
 	_adjustForMobile() {
 		this._zoomChart.setTicksCount(Axis.X, this._mobileMedia.matches ? 4 : 8);
-		this._zoomChart.setTicksCount(Axis.Y, this._mobileMedia.matches ? 4 : 8);
-		this._zoomChart.setTicksCount(Axis.Y_SECONDARY, this._mobileMedia.matches ? 4 : 8);
 
 		this._zoomChart.setViewsOptions({
 			line: {
@@ -329,37 +334,105 @@ export default class Pane {
 	 * @private
 	 */
 	_adjustColors(theme) {
-		const backgroundColor = {
-			[Theme.DAY]: '#ffffff',
-			[Theme.NIGHT]: '#232f3d'
-		}[theme];
+		let xTicksColor;
+		let xTicksAlpha;
 
-		const textColor = {
-			[Theme.DAY]: '#a9b3b9',
-			[Theme.NIGHT]: '#4c5f6f'
-		}[theme];
+		let yTicksColor;
+		let yTicksAlpha;
 
-		const linesColor = {
-			[Theme.DAY]: '#dfe7eb',
-			[Theme.NIGHT]: '#394959'
-		}[theme];
+		let ySecondaryTicksColor;
+		let ySecondaryTicksAlpha;
 
-		this._zoomChart.setTicksColor(Axis.X , textColor);
+		if (this._layoutType === LayoutType.LINE) {
+			if (theme === Theme.DAY) {
+				xTicksColor = yTicksColor = '#8e8e93';
+				xTicksAlpha = yTicksAlpha = 1;
+			}
 
-		if (this._layoutType === LayoutType.LINE_DOUBLE) {
-			this._zoomChart.setTicksColor(Axis.Y , this._graphs[0].color);
-			this._zoomChart.setTicksColor(Axis.Y_SECONDARY , this._graphs[1].color);
-		} else {
-			this._zoomChart.setTicksColor(Axis.Y , textColor);
+			if (theme === Theme.NIGHT) {
+				xTicksColor = yTicksColor = '#a3b1c2';
+				xTicksAlpha = yTicksAlpha = 0.6;
+			}
 		}
 
-		this._zoomChart.setGridColor(linesColor);
-		this._zoomChart.setRulerColor(linesColor);
-		this._zoomChart.setEmptyTextColor(textColor);
+		if (this._layoutType === LayoutType.LINE_DOUBLE) {
+			if (theme === Theme.DAY) {
+				xTicksColor = '#8e8e93';
+				xTicksAlpha = 1;
+			}
+
+			if (theme === Theme.NIGHT) {
+				xTicksColor = '#a3b1c2';
+				xTicksAlpha = 0.6;
+			}
+
+			yTicksColor = this._graphs[0].color;
+			yTicksAlpha = 1;
+
+			ySecondaryTicksColor = this._graphs[1].color;
+			ySecondaryTicksAlpha = 1;
+		}
+
+		if (this._layoutType === LayoutType.BAR) {
+			if (theme === Theme.DAY) {
+				xTicksColor = yTicksColor = '#252529';
+				xTicksAlpha = yTicksAlpha = 0.5;
+			}
+
+			if (theme === Theme.NIGHT) {
+				xTicksColor = '#a3b1c2';
+				xTicksAlpha = 0.6;
+
+				yTicksColor = '#ecf2f8';
+				yTicksAlpha = 0.5;
+			}
+		}
+
+		if (xTicksColor) {
+			this._zoomChart.setTicksColor(Axis.X , xTicksColor);
+		}
+
+		if (xTicksAlpha) {
+			this._zoomChart.setTicksAlpha(Axis.X , xTicksAlpha);
+		}
+
+		if (yTicksColor) {
+			this._zoomChart.setTicksColor(Axis.Y , yTicksColor);
+		}
+
+		if (yTicksAlpha) {
+			this._zoomChart.setTicksAlpha(Axis.Y , yTicksAlpha);
+		}
+
+		if (ySecondaryTicksColor) {
+			this._zoomChart.setTicksColor(Axis.Y_SECONDARY , ySecondaryTicksColor);
+		}
+
+		if (ySecondaryTicksAlpha) {
+			this._zoomChart.setTicksAlpha(Axis.Y_SECONDARY , ySecondaryTicksAlpha);
+		}
+
+		this._zoomChart.setGridColor({
+			[Theme.DAY]: '#182d3b',
+			[Theme.NIGHT]: '#ffffff'
+		}[theme]);
+
+		this._zoomChart.setRulerColor({
+			[Theme.DAY]: '#182d3b',
+			[Theme.NIGHT]: '#ffffff'
+		}[theme]);
+
+		this._zoomChart.setEmptyTextColor({
+			[Theme.DAY]: '#000000',
+			[Theme.NIGHT]: '#ffffff'
+		}[theme]);
 
 		this._zoomChart.setViewsOptions({
 			line: {
-				highlightColor: backgroundColor
+				highlightColor: {
+					[Theme.DAY]: '#ffffff',
+					[Theme.NIGHT]: '#242f3e'
+				}[theme]
 			}
 		});
 	}
@@ -385,7 +458,7 @@ export default class Pane {
 	_renderZoomRange() {
 		const range = this._zoomChart.getRange();
 
-		if (range.start === range.end) {
+		if (isNaN(range.start) || isNaN(range.end) || range.start === range.end) {
 			this._zoomRangeElement.textContent = '';
 
 			return;

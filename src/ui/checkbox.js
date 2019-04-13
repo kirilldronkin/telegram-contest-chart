@@ -69,11 +69,11 @@ export default class Checkbox {
 	_setupDOM() {
 		this._container.classList.add('checkbox');
 
-		this._iconElement = createDivElement('checkbox__icon');
-		this._iconElement.style.borderColor = this._color;
-		this._iconElement.appendChild(createDivElement('checkbox__mark'));
+		this._container.style.color = this._color;
+		this._container.style.background = this._color;
+		this._container.style.borderColor = this._color;
 
-		this._container.appendChild(this._iconElement);
+		this._container.appendChild(createDivElement('checkbox__mark'));
 		this._container.appendChild(createDivElement('checkbox__text', this._text));
 	}
 
@@ -81,12 +81,9 @@ export default class Checkbox {
 	 * @private
 	 */
 	_listenDOMEvents() {
-		this._iconElement.addEventListener('click', () => {
+		this._container.addEventListener('click', () => {
 			this._checked = !this._checked;
-
-			this._container.classList.add('_animated');
 			this._renderCheckedState();
-
 			this._updateListener();
 		});
 	}

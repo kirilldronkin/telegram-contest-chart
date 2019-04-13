@@ -147,11 +147,14 @@ function isPassiveEventsSupported() {
  * @param {string=} text
  * @returns {HTMLDivElement}
  */
-function createDivElement(className, text) {
+function createDivElement(className = '', text) {
 	const div = /** @type {HTMLDivElement} */ (document.createElement('div'));
 
 	if (className) {
-		div.classList.add(className);
+		className.split(' ')
+			.forEach((entry) => {
+				div.classList.add(entry);
+			});
 	}
 
 	if (text) {
