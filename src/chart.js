@@ -339,6 +339,12 @@ export default class Chart {
 		this._viewHelpers = this._createViewHelpers();
 
 		/**
+		 * @type {PaddingOptions}
+		 * @private
+		 */
+		this._paddingOptions = paddingOptions;
+
+		/**
 		 * @type {Array<Graph>}
 		 * @private
 		 */
@@ -897,9 +903,11 @@ export default class Chart {
 			return;
 		}
 
+		const canvasHeight = this._canvas.height;
+
 		this._context.save();
 
-		translateScales(this._context, this._xScale, undefined);
+		translateXScale(this._context, this._xScale);
 
 		this._context.lineWidth = this._rulerOptions.thickness;
 		this._context.strokeStyle = hexToRGB(this._rulerOptions.color, this._rulerOptions.alpha);
@@ -908,8 +916,8 @@ export default class Chart {
 			const xPixels = this._xScale.getPixelsByValue(x);
 
 			this._context.beginPath();
-			this._context.moveTo(xPixels, 0);
-			this._context.lineTo(xPixels, this._yScale.getDimension() - this._yScale.getPadding()[1]);
+			this._context.moveTo(xPixels, this._paddingOptions.top);
+			this._context.lineTo(xPixels, canvasHeight - this._paddingOptions.bottom);
 			this._context.stroke();
 		});
 
@@ -928,18 +936,13 @@ export default class Chart {
 			return;
 		}
 
-		const xScaleFitStart = this._xScale.getFitStart();
-		const xScaleDimension = this._xScale.getDimension();
-
-		const xPixels = this._xScale.getPixelsByValue(xScaleFitStart, {
-			padding: false
-		});
+		const canvasWidth = this._canvas.width;
 
 		this._context.save();
 		this._context.lineWidth = this._gridOptions.thickness;
 
 		if (this._yTicks.length) {
-			translateScales(this._context, this._xScale, this._yScale);
+			translateYScale(this._context, this._yScale);
 
 			this._yTicks.forEach((tick) => {
 				let yPixels = this._yScale.getPixelsByValue(tick);
@@ -950,12 +953,12 @@ export default class Chart {
 				this._context.strokeStyle = hexToRGB(this._gridOptions.color, alpha);
 
 				this._context.beginPath();
-				this._context.moveTo(xPixels, yPixels);
-				this._context.lineTo(xPixels + xScaleDimension, yPixels);
+				this._context.moveTo(0, yPixels);
+				this._context.lineTo(canvasWidth, yPixels);
 				this._context.stroke();
 			});
 		} else if (this._ySecondaryScale) {
-			translateScales(this._context, this._xScale, this._ySecondaryScale);
+			translateYScale(this._context, this._ySecondaryScale);
 
 			this._ySecondaryTicks.forEach((tick) => {
 				let yPixels = this._ySecondaryScale.getPixelsByValue(tick);
@@ -966,8 +969,8 @@ export default class Chart {
 				this._context.strokeStyle = hexToRGB(this._gridOptions.color, alpha);
 
 				this._context.beginPath();
-				this._context.moveTo(xPixels, yPixels);
-				this._context.lineTo(xPixels + xScaleDimension, yPixels);
+				this._context.moveTo(0, yPixels);
+				this._context.lineTo(canvasWidth, yPixels);
 				this._context.stroke();
 			});
 		}
@@ -985,22 +988,16 @@ export default class Chart {
 			return;
 		}
 
-		const yScaleFitStart = this._yScale.getFitStart();
-		const xScaleDimension = this._xScale.getDimension();
+		const canvasHeight = this._canvas.height;
 
 		const isStartReached = this._xScale.isStartReached();
 		const isEndReached = this._xScale.isEndReached();
-		const maxTextWidth = xScaleDimension / this._xTicks.length;
-
-		let yPixels = this._yScale.getPixelsByValue(yScaleFitStart, {
-			padding: false
-		});
-		yPixels -= this._xTicksOptions.size / 2;
+		const maxTextWidth = this._xScale.getDimension() / this._xTicks.length;
 
 		this._context.save();
 
 		setFont(this._context, this._xTicksOptions.font, this._xTicksOptions.size);
-		translateScales(this._context, this._xScale, this._yScale);
+		translateXScale(this._context, this._xScale);
 
 		if (isStartReached) {
 			this._context.textAlign = 'start';
@@ -1011,9 +1008,8 @@ export default class Chart {
 		}
 
 		this._xTicks.forEach((tick) => {
-			const xPixels = this._xScale.getPixelsByValue(tick, {
-				padding: false
-			});
+			const xPixels = this._xScale.getPixelsByValue(tick);
+			const yPixels = canvasHeight - (this._xTicksOptions.size / 2);
 
 			const text = this._formatTick(tick, Axis.X);
 			const alpha = this._getTickAlpha(tick, Axis.X);
@@ -1037,18 +1033,13 @@ export default class Chart {
 			return;
 		}
 
-		const xScaleFitStart = this._xScale.getFitStart();
-		const xScaleDimension = this._xScale.getDimension();
-
-		const xPixels = this._xScale.getPixelsByValue(xScaleFitStart, {
-			padding: false
-		});
+		const canvasWidth = this._canvas.width;
 
 		if (this._yTicks.length) {
 			this._context.save();
 
 			setFont(this._context, this._yTicksOptions.font, this._yTicksOptions.size);
-			translateScales(this._context, this._xScale, this._yScale);
+			translateYScale(this._context, this._yScale);
 
 			this._context.textAlign = 'start';
 
@@ -1060,7 +1051,7 @@ export default class Chart {
 				const alpha = this._getTickAlpha(tick, Axis.Y);
 
 				this._context.fillStyle = hexToRGB(this._yTicksOptions.color, alpha);
-				this._context.fillText(text, xPixels, yPixels);
+				this._context.fillText(text, 0, yPixels);
 			});
 
 			this._context.restore();
@@ -1070,7 +1061,7 @@ export default class Chart {
 			this._context.save();
 
 			setFont(this._context, this._ySecondaryTicksOptions.font, this._ySecondaryTicksOptions.size);
-			translateScales(this._context, this._xScale, this._ySecondaryScale);
+			translateYScale(this._context, this._ySecondaryScale);
 
 			this._context.textAlign = 'end';
 
@@ -1082,7 +1073,7 @@ export default class Chart {
 				const alpha = this._getTickAlpha(tick, Axis.Y_SECONDARY);
 
 				this._context.fillStyle = hexToRGB(this._ySecondaryTicksOptions.color, alpha);
-				this._context.fillText(text, xPixels + xScaleDimension, yPixels);
+				this._context.fillText(text, canvasWidth, yPixels);
 			});
 
 			this._context.restore();
@@ -1713,21 +1704,18 @@ function setFont(context, family, size) {
 
 /**
  * @param {CanvasRenderingContext2D} context
- * @param {IScale=} xScale
- * @param {IScale=} yScale
+ * @param {IScale} scale
  */
-function translateScales(context, xScale, yScale) {
-	let translateX = 0;
-	if (xScale) {
-		translateX = xScale.getPixelsPerValue() * xScale.getFitStart() * -1;
-	}
+function translateXScale(context, scale) {
+	context.translate(scale.getPixelsPerValue() * scale.getFitStart() * -1, 0);
+}
 
-	let translateY = 0;
-	if (yScale) {
-		translateY = yScale.getPixelsPerValue() * yScale.getFitStart();
-	}
-
-	context.translate(translateX, translateY);
+/**
+ * @param {CanvasRenderingContext2D} context
+ * @param {IScale} scale
+ */
+function translateYScale(context, scale) {
+	context.translate(0, scale.getPixelsPerValue() * scale.getFitStart());
 }
 
 /**

@@ -18,17 +18,12 @@ export default class XLinear extends Linear {
 	/**
 	 * @override
 	 */
-	getPixelsByValue(value, {fit = false, padding = true} = {}) {
+	getPixelsByValue(value, {fit = false} = {}) {
 		if (fit) {
 			value -= this._fitStart;
 		}
 
-		let pixels = this._pixelsPerValue * value;
-		if (padding) {
-			pixels += this._padding[0];
-		}
-
-		return pixels;
+		return (this._pixelsPerValue * value) + this._padding[0];
 	}
 
 	/**

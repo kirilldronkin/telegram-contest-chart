@@ -104,8 +104,7 @@ export default class IScale {
 	/**
 	 * @param {number} value
 	 * @param {{
-	 *     fit: (boolean|undefined),
-	 *     padding: (boolean|undefined)
+	 *     fit: (boolean|undefined)
 	 * }=} opt
 	 * @return {number}
 	 */

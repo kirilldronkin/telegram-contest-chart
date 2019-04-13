@@ -251,7 +251,7 @@ export default class Linear {
 	/**
 	 * @override
 	 */
-	getPixelsByValue(value, {fit = false, padding = true} = {}) {
+	getPixelsByValue(value, {fit = false} = {}) {
 		throw new NotImplementedError();
 	}
 

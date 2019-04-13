@@ -24,29 +24,24 @@ export default class YLinear extends Linear {
 	 * @override
 	 */
 	getValueByPixels(pixels, {fit = false} = {}) {
-		let y = (this._dimension - this._padding[1] - pixels) / this._pixelsPerValue;
+		let value = (this._dimension - this._padding[1] - pixels) / this._pixelsPerValue;
 
 		if (fit) {
-			return clamp(this._fitStart + y, this._fitStart, this._fitEnd);
+			return clamp(this._fitStart + value, this._fitStart, this._fitEnd);
 		}
 
-		return clamp(y, this._start, this._end);
+		return clamp(value, this._start, this._end);
 	}
 
 	/**
 	 * @override
 	 */
-	getPixelsByValue(value, {fit = false, padding = true} = {}) {
+	getPixelsByValue(value, {fit = false} = {}) {
 		if (fit) {
 			value -= this._fitStart;
 		}
 
-		let pixels = this._dimension - this._pixelsPerValue * value;
-		if (padding) {
-			pixels -= this._padding[1];
-		}
-
-		return pixels;
+		return this._dimension - this._padding[1] - (this._pixelsPerValue * value);
 	}
 
 	/**

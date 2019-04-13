@@ -35,7 +35,7 @@ const defaultZoomChartOptions = {
 		}
 	},
 	paddingOptions: {
-		top: 30,
+		top: 20,
 		bottom: 40
 	},
 	xTicksOptions: {
