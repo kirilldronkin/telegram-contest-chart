@@ -1,6 +1,6 @@
-import {noop, createDivElement, getEventX} from '../utils.js';
+import {noop, createDivElement, getEventX, isPassiveEventsSupported} from '../utils.js';
 
-const {max, round} = Math;
+const {max} = Math;
 
 /**
  * @const {number}
@@ -201,7 +201,7 @@ export default class Zoombar {
 	 * @private
 	 */
 	_onLeftGripDragged(positionDiff) {
-		const newPanSize = this._panSize - positionDiff;
+		const newPanSize = max(this._panSize - positionDiff, 0);
 		if (newPanSize >= 0) {
 			this._renderLeftOverlaySize(this._leftOverlaySize + positionDiff);
 			this._renderPanSize(newPanSize);
@@ -215,7 +215,7 @@ export default class Zoombar {
 	 * @private
 	 */
 	_onRightGripDragged(positionDiff) {
-		const newPanSize = this._panSize + positionDiff;
+		const newPanSize = max(this._panSize + positionDiff, 0);
 		if (newPanSize >= 0) {
 			this._renderRightOverlaySize(this._rightOverlaySize - positionDiff);
 			this._renderPanSize(newPanSize);
@@ -313,11 +313,14 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 	let lastPosition;
 	let clicksInactivityTimeoutId;
 
+	const passiveEventsSupported = isPassiveEventsSupported();
+
 	/**
 	 * @param {Event} event
 	 */
 	const onStart = (event) => {
 		event = /** @type {MouseEvent|TouchEvent} */ (event);
+		event.preventDefault();
 
 		const eventX = getEventX(event, element);
 
@@ -327,10 +330,12 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 		lastPosition = eventX - containerRect.left;
 
 		container.addEventListener('mousemove', onMove);
-		container.addEventListener('touchmove', onMove);
 		container.addEventListener('mouseup', onEnd);
 		container.addEventListener('mouseleave', onEnd);
 		container.addEventListener('touchend', onEnd);
+		container.addEventListener('touchmove', onMove, passiveEventsSupported && {
+			passive: false
+		});
 
 		if (clicksInactivityTimeoutId) {
 			clearTimeout(clicksInactivityTimeoutId);
@@ -348,6 +353,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 	 */
 	const onMove = (event) => {
 		event = /** @type {MouseEvent|TouchEvent} */ (event);
+		event.preventDefault();
 
 		const eventX = getEventX(event, element);
 		const newPosition = eventX - containerRect.left;
@@ -355,7 +361,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 		if (newPosition >= offset && newPosition + elementRect.width - offset <= containerRect.width) {
 			const diff = newPosition - lastPosition;
 			if (diff) {
-				onMoved(round(diff));
+				onMoved(diff);
 			}
 
 			lastPosition = newPosition;
@@ -371,9 +377,10 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 
 	const onEnd = () => {
 		container.removeEventListener('mousemove', onMove);
-		container.removeEventListener('touchmove', onMove);
 		container.removeEventListener('mouseup', onEnd);
 		container.removeEventListener('mouseleave', onEnd);
+
+		container.removeEventListener('touchmove', onMove);
 		container.removeEventListener('touchend', onEnd);
 
 		clicksInactivityTimeoutId = setTimeout(() => {
@@ -389,5 +396,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 	};
 
 	element.addEventListener('mousedown', onStart);
-	element.addEventListener('touchstart', onStart);
+	element.addEventListener('touchstart', onStart, passiveEventsSupported && {
+		passive: false
+	});
 }

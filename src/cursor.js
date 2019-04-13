@@ -2,7 +2,17 @@ import Point from './point.js';
 import Graph from './graph.js';
 import Chart, {Axis, TicksType, ViewType} from './chart.js';
 import Toolbar from './ui/toolbar.js';
-import {createDivElement, clamp, debounce, throttle, getEventX, getEventY, formatDate, DateUnit} from './utils.js';
+import {
+	createDivElement,
+	clamp,
+	debounce,
+	throttle,
+	getEventX,
+	getEventY,
+	isPassiveEventsSupported,
+	formatDate,
+	DateUnit
+} from './utils.js';
 
 /**
  * @const {number}
@@ -116,8 +126,8 @@ export default class Cursor {
 
 			this._canvas.removeChild(this._toolbarContainer);
 			this._canvas.removeEventListener('mousemove', this._onMoveBinded);
-			this._canvas.removeEventListener('touchmove', this._onMoveBinded);
 			this._canvas.removeEventListener('mouseleave', this._onMouseLeaveBinded);
+			this._canvas.removeEventListener('touchmove', this._onMoveBinded);
 			this._canvas.removeEventListener('touchend', this._onTouchEndBinded);
 		}
 
@@ -130,9 +140,11 @@ export default class Cursor {
 
 		this._canvas.parentElement.appendChild(this._toolbarContainer);
 		this._canvas.addEventListener('mousemove', this._onMoveBinded);
-		this._canvas.addEventListener('touchmove', this._onMoveBinded);
 		this._canvas.addEventListener('mouseleave', this._onMouseLeaveBinded);
 		this._canvas.addEventListener('touchend', this._onTouchEndBinded);
+		this._canvas.addEventListener('touchmove', this._onMoveBinded, isPassiveEventsSupported() && {
+			passive: true
+		});
 
 		this._hideToolbar();
 	}
@@ -217,7 +229,7 @@ export default class Cursor {
 	 * @private
 	 */
 	_onDraw() {
-		if (!this._isMyDrawing) {
+		if (!this._isMyDrawing && this._lastMoveX) {
 			this._isMyDrawing = true;
 			this._reset();
 			this._isMyDrawing = false;

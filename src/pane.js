@@ -277,9 +277,9 @@ export default class Pane {
 	 * @private
 	 */
 	_adjustForMobile() {
-		this._zoomChart.setTicksCount(Axis.X, this._mobileMedia.matches ? 5 : 7);
-		this._zoomChart.setTicksCount(Axis.Y, this._mobileMedia.matches ? 5 : 7);
-		this._zoomChart.setTicksCount(Axis.Y_SECONDARY, this._mobileMedia.matches ? 5 : 7);
+		this._zoomChart.setTicksCount(Axis.X, this._mobileMedia.matches ? 4 : 8);
+		this._zoomChart.setTicksCount(Axis.Y, this._mobileMedia.matches ? 4 : 8);
+		this._zoomChart.setTicksCount(Axis.Y_SECONDARY, this._mobileMedia.matches ? 4 : 8);
 
 		this._zoomChart.setViewsOptions({
 			line: {

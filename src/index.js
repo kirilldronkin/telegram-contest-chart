@@ -11,7 +11,7 @@ const THEME_STORAGE_KEY = 'telegram-contest-chart_theme';
 /**
  * @const {number}
  */
-const SCROLLING_STATE_TIME = 500;
+const SCROLLING_STATE_TIME = 300;
 
 const panes = [];
 const panesContainer = document.querySelector('#panes');
@@ -31,7 +31,6 @@ window.addEventListener('scroll', () => {
 		document.body.classList.remove('_scrolling');
 	}, SCROLLING_STATE_TIME);
 }, false);
-
 
 themeSwitchButton.addEventListener('click', toggleTheme);
 

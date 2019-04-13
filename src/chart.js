@@ -295,6 +295,18 @@ export default class Chart {
 		this._context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
 
 		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._width = NaN;
+
+		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._height = NaN;
+
+		/**
 		 * @type {IScale}
 		 * @private
 		 */
@@ -803,8 +815,8 @@ export default class Chart {
 		const width = this._canvas.parentNode.offsetWidth;
 		const height = this._canvas.parentNode.offsetHeight;
 
-		this._canvas.width = width;
-		this._canvas.height = height;
+		this._width = width;
+		this._height = height;
 
 		this._xScale.setDimension(width);
 		this._yScale.setDimension(height);
@@ -812,6 +824,32 @@ export default class Chart {
 		if (this._ySecondaryScale) {
 			this._ySecondaryScale.setDimension(height);
 		}
+
+		const devicePixelRatio = window.devicePixelRatio || 1;
+		const backingStoreRatio = (
+			this._context.webkitBackingStorePixelRatio ||
+			this._context.mozBackingStorePixelRatio ||
+			this._context.msBackingStorePixelRatio ||
+			this._context.oBackingStorePixelRatio ||
+			this._context.backingStorePixelRatio ||
+			1
+		);
+
+		const ratio = devicePixelRatio / backingStoreRatio;
+
+		if (devicePixelRatio !== backingStoreRatio) {
+			this._canvas.width = width * ratio;
+			this._canvas.height = height * ratio;
+			this._canvas.style.width = `${width}px`;
+			this._canvas.style.height = `${height}px`;
+		} else {
+			this._canvas.width = width;
+			this._canvas.height = height;
+			this._canvas.style.width = '';
+			this._canvas.style.height = '';
+		}
+
+		this._context.scale(ratio, ratio);
 	}
 
 	/**
@@ -869,7 +907,7 @@ export default class Chart {
 	 * @private
 	 */
 	_draw() {
-		this._context.clearRect(0, 0, this._canvas.width, this._canvas.height);
+		this._context.clearRect(0, 0, this._width, this._height);
 
 		if (this._xScale.isEmpty() || this._xScale.isRangeEmpty()) {
 			this._drawEmptyText();
@@ -903,8 +941,6 @@ export default class Chart {
 			return;
 		}
 
-		const canvasHeight = this._canvas.height;
-
 		this._context.save();
 
 		translateXScale(this._context, this._xScale);
@@ -917,7 +953,7 @@ export default class Chart {
 
 			this._context.beginPath();
 			this._context.moveTo(xPixels, this._paddingOptions.top);
-			this._context.lineTo(xPixels, canvasHeight - this._paddingOptions.bottom);
+			this._context.lineTo(xPixels, this._height - this._paddingOptions.bottom);
 			this._context.stroke();
 		});
 
@@ -936,8 +972,6 @@ export default class Chart {
 			return;
 		}
 
-		const canvasWidth = this._canvas.width;
-
 		this._context.save();
 		this._context.lineWidth = this._gridOptions.thickness;
 
@@ -954,7 +988,7 @@ export default class Chart {
 
 				this._context.beginPath();
 				this._context.moveTo(0, yPixels);
-				this._context.lineTo(canvasWidth, yPixels);
+				this._context.lineTo(this._width, yPixels);
 				this._context.stroke();
 			});
 		} else if (this._ySecondaryScale) {
@@ -970,7 +1004,7 @@ export default class Chart {
 
 				this._context.beginPath();
 				this._context.moveTo(0, yPixels);
-				this._context.lineTo(canvasWidth, yPixels);
+				this._context.lineTo(this._width, yPixels);
 				this._context.stroke();
 			});
 		}
@@ -988,11 +1022,9 @@ export default class Chart {
 			return;
 		}
 
-		const canvasHeight = this._canvas.height;
-
 		const isStartReached = this._xScale.isStartReached();
 		const isEndReached = this._xScale.isEndReached();
-		const maxTextWidth = this._xScale.getDimension() / this._xTicks.length;
+		const maxTextWidth = this._xScale.getDimension() / (this._xScale.getTicksCount() * 2);
 
 		this._context.save();
 
@@ -1009,7 +1041,7 @@ export default class Chart {
 
 		this._xTicks.forEach((tick) => {
 			const xPixels = this._xScale.getPixelsByValue(tick);
-			const yPixels = canvasHeight - (this._xTicksOptions.size / 2);
+			const yPixels = this._height - (this._xTicksOptions.size / 2);
 
 			const text = this._formatTick(tick, Axis.X);
 			const alpha = this._getTickAlpha(tick, Axis.X);
@@ -1032,8 +1064,6 @@ export default class Chart {
 		if (!shouldDraw) {
 			return;
 		}
-
-		const canvasWidth = this._canvas.width;
 
 		if (this._yTicks.length) {
 			this._context.save();
@@ -1073,7 +1103,7 @@ export default class Chart {
 				const alpha = this._getTickAlpha(tick, Axis.Y_SECONDARY);
 
 				this._context.fillStyle = hexToRGB(this._ySecondaryTicksOptions.color, alpha);
-				this._context.fillText(text, canvasWidth, yPixels);
+				this._context.fillText(text, this._width, yPixels);
 			});
 
 			this._context.restore();
@@ -1084,7 +1114,7 @@ export default class Chart {
 	 * @private
 	 */
 	_drawEmptyText() {
-		const center = [this._canvas.width / 2, this._canvas.height / 2];
+		const center = [this._width / 2, this._height / 2];
 
 		setFont(this._context, this._emptyTextOptions.font, this._emptyTextOptions.size);
 

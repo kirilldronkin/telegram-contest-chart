@@ -119,6 +119,29 @@ function getEventY(event, target) {
 	return NaN;
 }
 
+let passiveEventsSupported;
+/**
+ * @return {boolean}
+ */
+function isPassiveEventsSupported() {
+	if (typeof passiveEventsSupported === 'undefined') {
+		try {
+			const options = {
+				get passive() {
+					passiveEventsSupported = true;
+				}
+			};
+
+			window.addEventListener('test', options, options);
+			window.removeEventListener('test', options, options);
+		} catch(err) {
+			passiveEventsSupported = false;
+		}
+	}
+
+	return passiveEventsSupported;
+}
+
 /**
  * @param {string=} className
  * @param {string=} text
@@ -370,6 +393,7 @@ export {
 	throttle,
 	getEventX,
 	getEventY,
+	isPassiveEventsSupported,
 	createDivElement,
 	createCanvasElement,
 	hexToRGB,
