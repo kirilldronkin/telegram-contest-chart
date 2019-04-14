@@ -71,7 +71,7 @@ export default class Checkbox {
 	/**
 	 * @param {function()} listener
 	 */
-	setCheckedStartChangeListener(listener) {
+	setCheckedStateChangeListener(listener) {
 		this._checkedStateChangeListener = listener;
 	}
 

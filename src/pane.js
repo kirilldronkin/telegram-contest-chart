@@ -244,7 +244,7 @@ export default class Pane {
 
 			checkboxes.push(checkbox);
 
-			checkbox.setCheckedStartChangeListener(() => {
+			checkbox.setCheckedStateChangeListener(() => {
 				this._toggleGraphs([graph], checkbox.isChecked());
 			});
 
