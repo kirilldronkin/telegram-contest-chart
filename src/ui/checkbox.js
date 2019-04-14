@@ -1,4 +1,9 @@
-import {noop, createDivElement} from '../utils.js';
+import {noop, createDivElement, isPassiveEventsSupported} from '../utils.js';
+
+/**
+ * @const {number}
+ */
+const LONG_TAP_THRESHOLD = 500;
 
 export default class Checkbox {
 	/**
@@ -36,7 +41,13 @@ export default class Checkbox {
 		 * @type {function()}
 		 * @private
 		 */
-		this._updateListener = noop;
+		this._checkedStateChangeListener = noop;
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
+		this._longTapListener = noop;
 
 		/**
 		 * @type {HTMLDivElement}
@@ -50,10 +61,25 @@ export default class Checkbox {
 	}
 
 	/**
+	 * @param {boolean} state
+	 */
+	setCheckedState(state) {
+		this._checked = state;
+		this._renderCheckedState();
+	}
+
+	/**
 	 * @param {function()} listener
 	 */
-	setUpdateListener(listener) {
-		this._updateListener = listener;
+	setCheckedStartChangeListener(listener) {
+		this._checkedStateChangeListener = listener;
+	}
+
+	/**
+	 * @param {function()} listener
+	 */
+	setLongTapListener(listener) {
+		this._longTapListener = listener;
 	}
 
 	/**
@@ -81,11 +107,49 @@ export default class Checkbox {
 	 * @private
 	 */
 	_listenDOMEvents() {
-		this._container.addEventListener('click', () => {
-			this._checked = !this._checked;
-			this._renderCheckedState();
-			this._updateListener();
+		let tapStartTime;
+		let wasTouch;
+
+		const handleTap = () => {
+			if (Date.now() - tapStartTime < LONG_TAP_THRESHOLD) {
+				this._checked = !this._checked;
+				this._renderCheckedState();
+				this._checkedStateChangeListener();
+			} else {
+				this._longTapListener();
+			}
+		};
+
+		const onMouseDown = () => {
+			if (!wasTouch) {
+				tapStartTime = Date.now();
+			}
+		};
+
+		const onMouseUp = () => {
+			if (!wasTouch) {
+				handleTap();
+			}
+
+			wasTouch = false;
+		};
+
+		const onTouchStart = () => {
+			wasTouch = true;
+			tapStartTime = Date.now();
+		};
+
+		const onTouchEnd = () => {
+			handleTap();
+		};
+
+		this._container.addEventListener('mousedown', onMouseDown);
+		this._container.addEventListener('touchstart', onTouchStart, isPassiveEventsSupported() && {
+			passive: true
 		});
+
+		this._container.addEventListener('mouseup', onMouseUp);
+		this._container.addEventListener('touchend', onTouchEnd);
 	}
 
 	/**

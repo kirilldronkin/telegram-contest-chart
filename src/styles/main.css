@@ -11,7 +11,7 @@ body._scrolling {
 
 #panes {
 	padding: 10px;
-	margin-bottom: 40px;
+	margin-bottom: 20px;
 }
 
 #theme-switch-button {
@@ -27,14 +27,9 @@ body._scrolling {
 }
 
 .pane__header {
-	line-height: 16px;
+	height: 16px;
+	line-height: 1;
 	margin-bottom: 25px;
-}
-
-.pane__header::after {
-	clear: both;
-	display: table;
-	content: '';
 }
 
 .pane__title {
@@ -44,9 +39,10 @@ body._scrolling {
 }
 
 .pane__range {
-	float: right;
+	text-align: right;
 	font-size: 13px;
 	font-weight: bold;
+	line-height: 20px;
 }
 
 .pane__zoom-chart {
@@ -78,6 +74,7 @@ body._scrolling {
 	left: 0;
 	white-space: nowrap;
 	border-radius: 7px;
+	overflow: hidden;
 }
 
 .zoombar__pan {
@@ -138,14 +135,6 @@ body._scrolling {
 	will-change: width;
 }
 
-.zoombar__overlay._left {
-	border-radius: 7px 0 0 7px;
-}
-
-.zoombar__overlay._right {
-	border-radius: 0 7px 7px 0;
-}
-
 .checkbox {
 	display: inline-block;
 	height: 30px;
@@ -166,7 +155,7 @@ body._scrolling {
 	display: inline-block;
 	vertical-align: top;
 	width: 4px;
-	height: 12px;
+	height: 11px;
 	transform: scaleX(-1) rotate(135deg);
 	transform-origin: left top;
 	border-right: 2px solid #fff;
@@ -197,8 +186,8 @@ body._scrolling {
 	position: absolute;
 	top: 0;
 	left: 0;
-	min-width: 150px;
-	border-radius: 5px;
+	min-width: 135px;
+	border-radius: 10px;
 	box-shadow: 0 0 15px -10px #000;
 	padding: 10px;
 	z-index: 999;
@@ -209,30 +198,23 @@ body._scrolling {
 .toolbar__title {
 	font-size: 13px;
 	font-weight: bold;
-	margin-bottom: 10px;
+	margin-bottom: 8px;
 }
 
 .toolbar__item {
 	font-size: 12px;
-	margin-bottom: 10px;
+	margin-bottom: 8px;
 }
 
 .toolbar__item:last-child {
 	margin-bottom: 0;
 }
 
-.toolbar__item::after {
-	clear: both;
-	display: table;
-	content: '';
-}
-
 .toolbar__item-title {
 	float: left;
-	margin-top: 2px;
 }
 
 .toolbar__item-value {
-	float: right;
 	font-weight: bold;
+	text-align: right;
 }

@@ -28,7 +28,7 @@ export default class Zoombar {
 		 * @type {function()}
 		 * @private
 		 */
-		this._updateListener = noop;
+		this._rangeChangeListener = noop;
 
 		/**
 		 * @type {HTMLDivElement}
@@ -103,8 +103,8 @@ export default class Zoombar {
 	/**
 	 * @param {function()} listener
 	 */
-	setUpdateListener(listener) {
-		this._updateListener = listener;
+	setRangeChangeListener(listener) {
+		this._rangeChangeListener = listener;
 	}
 
 	/**
@@ -203,10 +203,10 @@ export default class Zoombar {
 	_onLeftGripDragged(positionDiff) {
 		const newPanSize = max(this._panSize - positionDiff, 0);
 		if (newPanSize >= 0) {
-			this._renderLeftOverlaySize(this._leftOverlaySize + positionDiff);
+			this._renderLeftOverlaySize(this._leftOverlaySize - (newPanSize - this._panSize));
 			this._renderPanSize(newPanSize);
 
-			this._updateListener();
+			this._rangeChangeListener();
 		}
 	}
 
@@ -217,10 +217,10 @@ export default class Zoombar {
 	_onRightGripDragged(positionDiff) {
 		const newPanSize = max(this._panSize + positionDiff, 0);
 		if (newPanSize >= 0) {
-			this._renderRightOverlaySize(this._rightOverlaySize - positionDiff);
+			this._renderRightOverlaySize(this._rightOverlaySize - (newPanSize - this._panSize));
 			this._renderPanSize(newPanSize);
 
-			this._updateListener();
+			this._rangeChangeListener();
 		}
 	}
 
@@ -243,7 +243,7 @@ export default class Zoombar {
 		this._renderLeftOverlaySize(newLeftOverlaySize);
 		this._renderRightOverlaySize(newRightOverlaySize);
 
-		this._updateListener();
+		this._rangeChangeListener();
 	}
 
 	/**
@@ -276,7 +276,7 @@ export default class Zoombar {
 		this._renderLeftOverlaySize(newPanStart);
 		this._renderRightOverlaySize(this._rightOverlaySize + leftOverlayRect.width - newPanStart);
 
-		this._updateListener();
+		this._rangeChangeListener();
 	}
 
 	/**
@@ -295,7 +295,7 @@ export default class Zoombar {
 		this._renderRightOverlaySize(newPanEnd);
 		this._renderLeftOverlaySize(this._leftOverlaySize + rightOverlayRect.width - newPanEnd);
 
-		this._updateListener();
+		this._rangeChangeListener();
 	}
 }
 

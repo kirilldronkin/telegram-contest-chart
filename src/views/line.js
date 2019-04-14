@@ -160,11 +160,11 @@ export default class Line {
 		const yScaleStart = this._yScale.getStart();
 		const yScaleEnd = this._yScale.getEnd();
 
-		if ((isNaN(yScaleStart) || minY < yScaleStart)) {
+		if (isNaN(yScaleStart) || minY < yScaleStart) {
 			this._yScale.setStart(minY);
 		}
 
-		if ((isNaN(yScaleEnd) || maxY > yScaleEnd)) {
+		if (isNaN(yScaleEnd) || maxY > yScaleEnd) {
 			this._yScale.setEnd(maxY);
 		}
 

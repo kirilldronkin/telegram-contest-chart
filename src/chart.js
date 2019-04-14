@@ -1068,8 +1068,6 @@ export default class Chart {
 			return;
 		}
 
-		const isStartReached = this._xScale.isStartReached();
-		const isEndReached = this._xScale.isEndReached();
 		const maxTextWidth = this._xScale.getDimension() / (this._xScale.getTicksCount() * 2);
 
 		this._context.save();
@@ -1077,9 +1075,9 @@ export default class Chart {
 		setFont(this._context, this._xTicksOptions.font, this._xTicksOptions.size);
 		translateXScale(this._context, this._xScale);
 
-		if (isStartReached) {
+		if (this._xScale.isStartReached()) {
 			this._context.textAlign = 'start';
-		} else if (isEndReached) {
+		} else if (this._xScale.isEndReached()) {
 			this._context.textAlign = 'end';
 		} else {
 			this._context.textAlign = 'center';

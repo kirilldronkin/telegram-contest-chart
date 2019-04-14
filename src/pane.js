@@ -236,12 +236,39 @@ export default class Pane {
 	init(parent, theme) {
 		this._listenEvents();
 
+		const checkboxes = [];
+
 		this._graphs.forEach((graph, index) => {
 			const checkboxContainer = createDivElement();
 			const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
 
-			checkbox.setUpdateListener(() => {
-				this._toggleGraph(graph, checkbox.isChecked());
+			checkboxes.push(checkbox);
+
+			checkbox.setCheckedStartChangeListener(() => {
+				this._toggleGraphs([graph], checkbox.isChecked());
+			});
+
+			checkbox.setLongTapListener(() => {
+				const drawnGraphs = this._zoomChart.getGraphs();
+				const notDrawnGraphs = this._graphs.filter((someGraph) => !drawnGraphs.includes(someGraph));
+
+				if (checkbox.isChecked()) {
+					this._toggleGraphs(drawnGraphs.filter((someGraph) => someGraph !== graph), false);
+
+					checkboxes.forEach((checkbox, checkboxIndex) => {
+						if (checkboxIndex !== index) {
+							checkbox.setCheckedState(false);
+						}
+					});
+				} else {
+					this._toggleGraphs(notDrawnGraphs.filter((someGraph) => someGraph !== graph), true);
+
+					checkboxes.forEach((checkbox, checkboxIndex) => {
+						if (checkboxIndex !== index) {
+							checkbox.setCheckedState(true);
+						}
+					});
+				}
 			});
 
 			const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
@@ -281,21 +308,23 @@ export default class Pane {
 	}
 
 	/**
-	 * @param {Graph} graph
-	 * @param {boolean} visible
+	 * @param {Array<Graph>} graphs
+	 * @param {boolean} show
 	 * @private
 	 */
-	_toggleGraph(graph, visible) {
-		const index = this._graphs.indexOf(graph);
-		const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
+	_toggleGraphs(graphs, show) {
+		graphs.forEach((graph) => {
+			const index = this._graphs.indexOf(graph);
+			const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
 
-		if (visible) {
-			this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
-			this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
-		} else {
-			this._zoomChart.removeGraph(graph);
-			this._overviewChart.removeGraph(graph);
-		}
+			if (show) {
+				this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
+				this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
+			} else {
+				this._zoomChart.removeGraph(graph);
+				this._overviewChart.removeGraph(graph);
+			}
+		});
 
 		this._overviewChart.draw();
 
@@ -449,7 +478,7 @@ export default class Pane {
 			this._zoom();
 		});
 
-		this._zoombar.setUpdateListener(this._zoom.bind(this));
+		this._zoombar.setRangeChangeListener(this._zoom.bind(this));
 	}
 
 	/**
