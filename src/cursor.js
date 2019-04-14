@@ -188,8 +188,8 @@ export default class Cursor {
 		let title;
 		if (this._chart.getAxisTicksType(Axis.X) === TicksType.DATE) {
 			const xDate = new Date(x);
-			const ticksSpacing = this._chart.getAxisTicksSpacing(Axis.X);
 			const msInDay = 100 * 60 * 60 * 24;
+			const ticksSpacing = this._chart.getAxisTicksSpacing(Axis.X);
 
 			if (ticksSpacing / msInDay >= 1) {
 				title = `${getShortWeekDayName(xDate.getDay())}, ${formatDay(xDate)}`;

@@ -1,5 +1,4 @@
 import IView from '../interfaces/i-view.js';
-import IScale from '../interfaces/i-scale.js';
 import {InterpolationType} from '../graph.js';
 import {Timing} from '../transition.js';
 import {findMax, findMin, hexToRGB, identity} from '../utils.js';
@@ -33,30 +32,9 @@ export let Options;
  */
 export default class Line {
 	/**
-	 * @param {CanvasRenderingContext2D} context
-	 * @param {IScale} xScale
-	 * @param {IScale} yScale
 	 * @param {Options=} options
 	 */
-	constructor(context, xScale, yScale, options) {
-		/**
-		 * @type {CanvasRenderingContext2D}
-		 * @private
-		 */
-		this._context = context;
-
-		/**
-		 * @type {IScale}
-		 * @private
-		 */
-		this._xScale = xScale;
-
-		/**
-		 * @type {IScale}
-		 * @private
-		 */
-		this._yScale = yScale;
-
+	constructor(options) {
 		/**
 		 * @type {number}
 		 * @private
@@ -134,186 +112,66 @@ export default class Line {
 	/**
 	 * @override
 	 */
-	addGraphToXScale(graph) {
-		const minX = graph.getMinX();
-		const maxX = graph.getMaxX();
+	findYScaleStart(graphs) {
+		const yMins = graphs.map((graph) => graph.getMinY());
 
-		const xScaleStart = this._xScale.getStart();
-		const xScaleEnd = this._xScale.getEnd();
-
-		if (isNaN(xScaleStart) || minX < xScaleStart) {
-			this._xScale.setStart(minX);
-		}
-
-		if (isNaN(xScaleEnd) || maxX > xScaleEnd) {
-			this._xScale.setEnd(maxX);
-		}
+		return findMin(yMins, identity);
 	}
 
 	/**
 	 * @override
 	 */
-	addGraphToYScale(graph, otherGraphs, {getGraphRange}) {
-		const minY = graph.getMinY();
-		const maxY = graph.getMaxY();
+	findYScaleEnd(graphs) {
+		const yMaxes = graphs.map((graph) => graph.getMaxY());
 
-		const yScaleStart = this._yScale.getStart();
-		const yScaleEnd = this._yScale.getEnd();
-
-		if (isNaN(yScaleStart) || minY < yScaleStart) {
-			this._yScale.setStart(minY);
-		}
-
-		if (isNaN(yScaleEnd) || maxY > yScaleEnd) {
-			this._yScale.setEnd(maxY);
-		}
-
-		if (this._xScale.isRangeGiven()) {
-			const range = getGraphRange(graph);
-
-			const minRangeY = findMin(range, (point) => point.y);
-			const maxRangeY = findMax(range, (point) => point.y);
-
-			const yScaleRangeStart = this._yScale.getRangeStart();
-			const yScaleRangeEnd = this._yScale.getRangeEnd();
-
-			if (isNaN(yScaleRangeStart) || minRangeY < yScaleRangeStart) {
-				this._yScale.setRangeStart(minRangeY);
-			}
-
-			if (isNaN(yScaleRangeEnd) || maxRangeY > yScaleRangeEnd) {
-				this._yScale.setRangeEnd(maxRangeY);
-			}
-		}
+		return findMax(yMaxes, identity);
 	}
 
 	/**
 	 * @override
 	 */
-	removeGraphFromXScale(graph, otherGraphs) {
-		const minX = graph.getMinX();
-		const maxX = graph.getMaxX();
+	findYScaleRangeStart(ranges) {
+		const yMins = ranges.map((range) => findMin(range, (point) => point.y));
 
-		const xScaleStart = this._xScale.getStart();
-		const xScaleEnd = this._xScale.getEnd();
-
-		if (minX === xScaleStart) {
-			const otherMinXs = otherGraphs.map((graph) => graph.getMinX());
-
-			this._xScale.setStart(findMin(otherMinXs, identity));
-		}
-
-		if (maxX === xScaleEnd) {
-			const otherMaxXs = otherGraphs.map((graph) => graph.getMaxX());
-
-			this._xScale.setEnd(findMax(otherMaxXs, identity));
-		}
+		return findMin(yMins, identity);
 	}
 
 	/**
 	 * @override
 	 */
-	removeGraphFromYScale(graph, otherGraphs, {getGraphRange}) {
-		const minY = graph.getMinY();
-		const maxY = graph.getMaxY();
+	findYScaleRangeEnd(ranges) {
+		const yMaxes = ranges.map((range) => findMax(range, (point) => point.y));
 
-		const yScaleEnd = this._yScale.getEnd();
-		const yScaleStart = this._yScale.getStart();
-
-		if (minY === yScaleStart) {
-			const otherMinYs = otherGraphs.map((graph) => graph.getMinY());
-
-			this._yScale.setStart(findMin(otherMinYs, identity));
-		}
-
-		if (maxY === yScaleEnd) {
-			const otherMaxYs = otherGraphs.map((graph) => graph.getMaxY());
-
-			this._yScale.setEnd(findMax(otherMaxYs, identity));
-		}
-
-		if (this._xScale.isRangeGiven()) {
-			const range = getGraphRange(graph);
-			const otherRanges = otherGraphs.map((otherGraph) => getGraphRange(otherGraph));
-
-			const minRangeY = findMin(range, (point) => point.y);
-			const maxRangeY = findMax(range, (point) => point.y);
-
-			const yScaleRangeStart = this._yScale.getRangeStart();
-			const yScaleRangeEnd = this._yScale.getRangeEnd();
-
-			if (minRangeY === yScaleRangeStart) {
-				const otherRangeMinYs = otherRanges.map((range) => findMin(range, (point) => point.y));
-
-				this._yScale.setRangeStart(findMin(otherRangeMinYs, identity));
-			}
-
-			if (maxRangeY === yScaleRangeEnd) {
-				const otherRangeMaxYs = otherRanges.map((range) => findMax(range, (point) => point.y));
-
-				this._yScale.setRangeEnd(findMax(otherRangeMaxYs, identity));
-			}
-		}
+		return findMax(yMaxes, identity);
 	}
 
 	/**
 	 * @override
 	 */
-	updateYScaleRange(graphs, {getGraphRange}) {
-		graphs.forEach((graph) => {
-			const range = getGraphRange(graph);
-
-			const minRangeY = findMin(range, (point) => point.y);
-			const maxRangeY = findMax(range, (point) => point.y);
-
-			const yScaleRangeStart = this._yScale.getRangeStart();
-			const yScaleRangeEnd = this._yScale.getRangeEnd();
-
-			if (isNaN(yScaleRangeStart) || minRangeY < yScaleRangeStart) {
-				this._yScale.setRangeStart(minRangeY);
-			}
-
-			if (isNaN(yScaleRangeEnd) || maxRangeY > yScaleRangeEnd) {
-				this._yScale.setRangeEnd(maxRangeY);
-			}
-		});
-	}
-
-	/**
-	 * @override
-	 */
-	draw(graphs, {getGraphRange, getGraphVisibility, getGraphHighlightedPoint}) {
-		this._context.save();
-
-		this._context.translate(
-			this._xScale.getPixelsPerValue() * this._xScale.getFitStart() * -1,
-			this._yScale.getPixelsPerValue() * this._yScale.getFitStart()
-		);
-
-		this._context.lineCap = 'round';
-		this._context.lineJoin = 'round';
-		this._context.lineWidth = this._thickness;
+	draw(context, xScale, yScale, graphs, {getGraphRange, getGraphVisibility, getGraphHighlightedPoint}) {
+		context.lineCap = 'round';
+		context.lineJoin = 'round';
+		context.lineWidth = this._thickness;
 
 		graphs.forEach((graph) => {
 			const range = getGraphRange(graph);
 			const visibility = getGraphVisibility(graph);
 
-			this._context.beginPath();
-
-			this._context.strokeStyle = hexToRGB(graph.color, visibility);
+			context.beginPath();
+			context.strokeStyle = hexToRGB(graph.color, visibility);
 
 			range.forEach((point, index) => {
-				const xPixels = this._xScale.getPixelsByValue(point.x);
-				const yPixels = this._yScale.getPixelsByValue(point.y);
+				const xPixels = xScale.getPixelsByValue(point.x);
+				const yPixels = yScale.getPixelsByValue(point.y);
 
 				if (index === 0) {
-					this._context.moveTo(xPixels, yPixels);
+					context.moveTo(xPixels, yPixels);
 				} else {
-					this._context.lineTo(xPixels, yPixels);
+					context.lineTo(xPixels, yPixels);
 				}
 			});
 
-			this._context.stroke();
+			context.stroke();
 		});
 
 		graphs.forEach((graph) => {
@@ -321,19 +179,17 @@ export default class Line {
 			const highlightedPoint = getGraphHighlightedPoint(graph);
 
 			if (highlightedPoint) {
-				const xPixels = this._xScale.getPixelsByValue(highlightedPoint.x);
-				const yPixels = this._yScale.getPixelsByValue(highlightedPoint.y);
+				const xPixels = xScale.getPixelsByValue(highlightedPoint.x);
+				const yPixels = yScale.getPixelsByValue(highlightedPoint.y);
 
-				this._context.fillStyle = hexToRGB(this._highlightColor, visibility);
-				this._context.strokeStyle = hexToRGB(graph.color, visibility);
+				context.fillStyle = hexToRGB(this._highlightColor, visibility);
+				context.strokeStyle = hexToRGB(graph.color, visibility);
 
-				this._context.beginPath();
-				this._context.arc(xPixels, yPixels, this._highlightRadius, 0, 2 * Math.PI);
-				this._context.fill();
-				this._context.stroke();
+				context.beginPath();
+				context.arc(xPixels, yPixels, this._highlightRadius, 0, 2 * Math.PI);
+				context.fill();
+				context.stroke();
 			}
 		});
-
-		this._context.restore();
 	}
 }

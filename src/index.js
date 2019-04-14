@@ -47,7 +47,7 @@ window.addEventListener('load', onLoad);
  */
 async function loadDatasets() {
 	return Promise.all(
-		['1', '2', '3', '4'].map((sample) =>
+		['1', '2', '3', '4', '5'].map((sample) =>
 			fetch(`data/${sample}/overview.json`).then((response) => response.json())
 		)
 	);
@@ -76,6 +76,8 @@ async function onLoad() {
 			title = 'Messages';
 		} else if (datasetIndex === 3) {
 			title = 'Apps';
+		} else if (datasetIndex === 4) {
+			title = 'Onlines';
 		}
 
 		let /** @type {PaneLayoutType} */ layout;
@@ -85,6 +87,8 @@ async function onLoad() {
 			layout = PaneLayoutType.LINE_DOUBLE
 		} else if (datasetIndex === 2 || datasetIndex === 3) {
 			layout = PaneLayoutType.BAR;
+		} else if (datasetIndex === 4) {
+			layout = PaneLayoutType.AREA;
 		}
 
 		const pane = new Pane(title, graphs, layout);

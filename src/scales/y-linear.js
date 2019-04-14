@@ -61,6 +61,9 @@ export default class YLinear extends Linear {
 			return;
 		}
 
+		let newFitStart = start;
+		let newFitEnd = end;
+
 		if (this._nice) {
 			spacing = niceNumber(spacing);
 
@@ -68,10 +71,10 @@ export default class YLinear extends Linear {
 			if (niceTicksCount > this._ticksCount) {
 				spacing = niceNumber(niceTicksCount * spacing / this._ticksCount);
 			}
-		}
 
-		const newFitStart = this._nice ? (floor(start / spacing) * spacing) : start;
-		const newFitEnd = this._nice ? (ceil(end / spacing) * spacing) : end;
+			newFitStart = floor(start / spacing) * spacing;
+			newFitEnd = ceil(end / spacing) * spacing;
+		}
 
 		if (isNaN(this._fitStart) || isNaN(this._fitEnd)) {
 			this._fitStart = newFitStart;

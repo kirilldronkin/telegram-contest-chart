@@ -27,13 +27,14 @@ const RANGE_RENDER_BACKPRESSURE_TIME = 100;
 export const LayoutType = {
 	LINE: 'line',
 	LINE_DOUBLE: 'line-double',
-	BAR: 'bar'
+	BAR: 'bar',
+	AREA: 'area'
 };
 
 /**
  * @type {ChartOptions}
  */
-const defaultZoomChartOptions = {
+const commonZoomChartOptions = {
 	viewsOptions: {
 		line: {
 			highlightRadius: 5
@@ -42,31 +43,31 @@ const defaultZoomChartOptions = {
 			highlightDimmingAlpha: 0.5
 		}
 	},
-	paddingOptions: {
+	padding: {
 		top: 15,
 		bottom: 25
 	},
-	xTicksOptions: {
+	xTicks: {
 		type: TicksType.DATE,
 		size: 11
 	},
-	yTicksOptions: {
+	yTicks: {
 		type: TicksType.COMPACT,
 		count: 6,
 		size: 11
 	},
-	ySecondaryTicksOptions: {
+	ySecondaryTicks: {
 		type: TicksType.COMPACT,
 		count: 6,
 		size: 11
 	},
-	gridOptions: {
+	grid: {
 		alpha: 0.1
 	},
-	rulerOptions: {
+	ruler: {
 		alpha: 0.1
 	},
-	emptyTextOptions: {
+	emptyText: {
 		text: 'Nothing to show',
 		size: 13
 	}
@@ -75,20 +76,20 @@ const defaultZoomChartOptions = {
 /**
  * @type {ChartOptions}
  */
-const defaultOverviewChartOptions = {
-	paddingOptions: {
+const commonOverviewChartOptions = {
+	padding: {
 		top: 2,
 		bottom: 2,
 		left: 10,
 		right: 10
 	},
-	xTicksOptions: {
+	xTicks: {
 		type: TicksType.NONE
 	},
-	yTicksOptions: {
+	yTicks: {
 		type: TicksType.NONE
 	},
-	ySecondaryTicksOptions: {
+	ySecondaryTicks: {
 		type: TicksType.NONE
 	}
 };
@@ -101,11 +102,11 @@ export default class Pane {
 	 */
 	constructor(title, graphs, layoutType) {
 		const zoomChartContainer = createDivElement('pane__zoom-chart');
-		const zoomChartOptions = /** @type {ChartOptions} */ (merge({}, defaultZoomChartOptions));
+		const zoomChartOptions = /** @type {ChartOptions} */ (merge({}, commonZoomChartOptions));
 		const zoomChartCanvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
 
 		const overviewChartContainer = createDivElement('pane__overview-chart');
-		const overviewChartOptions =/** @type {ChartOptions} */ ( merge({}, defaultOverviewChartOptions));
+		const overviewChartOptions =/** @type {ChartOptions} */ ( merge({}, commonOverviewChartOptions));
 		const overviewChartCanvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
 
 		const headerElement = createDivElement('pane__header');
@@ -116,24 +117,23 @@ export default class Pane {
 		const zoombarContainer = createDivElement();
 
 		if (layoutType === LayoutType.LINE) {
-			zoomChartOptions.viewTypes = [ViewType.LINE];
-			overviewChartOptions.viewTypes = [ViewType.LINE];
+			zoomChartOptions.views = [{type: ViewType.LINE}];
+			overviewChartOptions.views = [{type: ViewType.LINE}];
 		}
 
 		if (layoutType === LayoutType.LINE_DOUBLE) {
-			zoomChartOptions.viewTypes = [ViewType.LINE, ViewType.LINE];
-			zoomChartOptions.ySecondaryViews = [1];
-
-			overviewChartOptions.viewTypes = [ViewType.LINE, ViewType.LINE];
-			overviewChartOptions.ySecondaryViews = [1];
+			zoomChartOptions.views = [{type: ViewType.LINE}, {type: ViewType.LINE, ySecondary: true}];
+			overviewChartOptions.views = [{type: ViewType.LINE}, {type: ViewType.LINE, ySecondary: true}];
 		}
 
 		if (layoutType === LayoutType.BAR) {
-			zoomChartOptions.viewTypes = [ViewType.BAR];
-			zoomChartOptions.yTicksOptions.alpha = 0.5;
+			zoomChartOptions.views = [{type: ViewType.BAR}];
+			overviewChartOptions.views = [{type: ViewType.BAR}];
+		}
 
-			overviewChartOptions.viewTypes = [ViewType.BAR];
-			overviewChartOptions.yTicksOptions.alpha = 0.5;
+		if (layoutType === LayoutType.AREA) {
+			zoomChartOptions.views = [{type: ViewType.AREA}];
+			overviewChartOptions.views = [{type: ViewType.AREA}];
 		}
 
 		/**
@@ -402,7 +402,7 @@ export default class Pane {
 			ySecondaryTicksAlpha = 1;
 		}
 
-		if (this._layoutType === LayoutType.BAR) {
+		if (this._layoutType === LayoutType.BAR || this._layoutType === LayoutType.AREA) {
 			if (theme === Theme.DAY) {
 				xTicksColor = yTicksColor = '#252529';
 				xTicksAlpha = yTicksAlpha = 0.5;

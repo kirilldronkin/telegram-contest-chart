@@ -186,7 +186,6 @@ body._scrolling {
 	position: absolute;
 	top: 0;
 	left: 0;
-	min-width: 135px;
 	border-radius: 10px;
 	box-shadow: 0 0 15px -10px #000;
 	padding: 10px;
@@ -212,9 +211,11 @@ body._scrolling {
 
 .toolbar__item-title {
 	float: left;
+	margin-right: 30px;
 }
 
 .toolbar__item-value {
 	font-weight: bold;
 	text-align: right;
+	overflow: hidden;
 }

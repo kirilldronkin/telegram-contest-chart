@@ -1,3 +1,4 @@
+import IScale from './i-scale.js';
 import Point from '../point.js';
 import Graph, {InterpolationType} from '../graph.js';
 import {Timing} from '../transition.js';
@@ -9,7 +10,7 @@ import {Timing} from '../transition.js';
  *     getGraphHighlightedPoint: function(Graph): ?Point,
  * }}
  */
-export let Helpers;
+export let DrawHelpers;
 
 /**
  * @template OPTIONS_TYPE
@@ -45,42 +46,35 @@ export default class IView {
 	selectHighlightedPoint(start, middle, end) {}
 
 	/**
-	 * @param {Graph} graph
-	 * @param {Array<Graph>} otherGraphs
-	 * @param {Helpers} helpers
+	 * @param {Array<Graph>} graphs
+	 * @return {number}
 	 */
-	addGraphToXScale(graph, otherGraphs, helpers) {}
-
-	/**
-	 * @param {Graph} graph
-	 * @param {Array<Graph>} otherGraphs
-	 * @param {Helpers} helpers
-	 */
-	addGraphToYScale(graph, otherGraphs, helpers) {}
-
-	/**
-	 * @param {Graph} graph
-	 * @param {Array<Graph>} otherGraphs
-	 * @param {Helpers} helpers
-	 */
-	removeGraphFromXScale(graph, otherGraphs, helpers) {}
-
-	/**
-	 * @param {Graph} graph
-	 * @param {Array<Graph>} otherGraphs
-	 * @param {Helpers} helpers
-	 */
-	removeGraphFromYScale(graph, otherGraphs, helpers) {}
+	findYScaleStart(graphs) {}
 
 	/**
 	 * @param {Array<Graph>} graphs
-	 * @param {Helpers} helpers
+	 * @return {number}
 	 */
-	updateYScaleRange(graphs, helpers) {}
+	findYScaleEnd(graphs) {}
 
 	/**
-	 * @param {Array<Graph>} graphs
-	 * @param {Helpers} helpers
+	 * @param {Array<Array<Point>>} ranges
+	 * @return {number}
 	 */
-	draw(graphs, helpers) {}
+	findYScaleRangeStart(ranges) {}
+
+	/**
+	 * @param {Array<Array<Point>>} ranges
+	 * @return {number}
+	 */
+	findYScaleRangeEnd(ranges) {}
+
+	/**
+	 * @param {CanvasRenderingContext2D} context
+	 * @param {IScale} xScale
+	 * @param {IScale} yScale
+	 * @param {Array<Graph>} graphs
+	 * @param {DrawHelpers} helpers
+	 */
+	draw(context, xScale, yScale, graphs, helpers) {}
 }

@@ -2,23 +2,27 @@ import Point from './point.js';
 import Graph from './graph.js';
 import Transition from './transition.js';
 import IScale from './interfaces/i-scale.js';
-import IView, {Helpers as ViewHelpers} from './interfaces/i-view.js';
+import IView, {DrawHelpers as ViewDrawHelpers} from './interfaces/i-view.js';
 import XLinearScale from './scales/x-linear.js';
 import YLinearScale from './scales/y-linear.js';
 import LineView, {Options as LineViewOptions} from './views/line.js';
 import BarView, {Options as BarViewOptions} from './views/bar.js';
+import AreaView, {Options as AreaViewOptions} from './views/area.js';
 import {
 	clamp,
 	unique,
 	pull,
 	merge,
+	findMin,
+	findMax,
+	identity,
 	compactNumber,
 	formatDate,
 	DateUnit,
 	hexToRGB
 } from './utils.js';
 
-const {min, max} = Math;
+const {min, max,} = Math;
 
 /**
  * @const {number}
@@ -65,8 +69,17 @@ export const TicksType = {
 
 /**
  * @typedef {{
+ *     type: ViewType,
+ *     ySecondary: (boolean|undefined)
+ * }}
+ */
+let ViewEntry;
+
+/**
+ * @typedef {{
  *     line: (LineViewOptions|undefined),
- *     bar: (BarViewOptions|undefined)
+ *     bar: (BarViewOptions|undefined),
+ *     area: (AreaViewOptions|undefined)
  * }}
  */
 let ViewsOptions;
@@ -181,16 +194,16 @@ let EmptyTextOptionsPartial;
 
 /**
  * @typedef {{
- *     viewTypes: (Array<ViewType>|undefined),
+ *     views: (Array<ViewEntry>|undefined),
  *     viewsOptions: (ViewsOptions|undefined),
- *     paddingOptions: (PaddingOptionsPartial|undefined),
- *     xTicksOptions: (XTicksOptionsPartial|undefined),
- *     yTicksOptions: (YTicksOptionsPartial|undefined),
- *     ySecondaryViews: (Array<number>|undefined),
- *     ySecondaryTicksOptions: (YTicksOptionsPartial|undefined),
- *     gridOptions: (LineOptionsPartial|undefined),
- *     rulerOptions: (LineOptionsPartial|undefined),
- *     emptyTextOptions: (EmptyTextOptionsPartial|undefined)
+ *     padding: (PaddingOptionsPartial|undefined),
+ *     xTicks: (XTicksOptionsPartial|undefined),
+ *     yTicks: (YTicksOptionsPartial|undefined),
+ *     ySecondary: (Array<number>|undefined),
+ *     ySecondaryTicks: (YTicksOptionsPartial|undefined),
+ *     grid: (LineOptionsPartial|undefined),
+ *     ruler: (LineOptionsPartial|undefined),
+ *     emptyText: (EmptyTextOptionsPartial|undefined)
  * }}
  */
 export let Options;
@@ -260,28 +273,34 @@ const defaultEmptyTextOptions = {
 export default class Chart {
 	/**
 	 * @param {HTMLCanvasElement} canvas
-	 * @param {Options=} opt
+	 * @param {Options=} options
 	 */
-	constructor(canvas, {
-		viewTypes = [],
-		viewsOptions = {},
-		paddingOptions = {},
-		xTicksOptions = {},
-		yTicksOptions = {},
-		ySecondaryViews = [],
-		ySecondaryTicksOptions = {},
-		gridOptions = {},
-		rulerOptions = {},
-		emptyTextOptions = {}
-	} = {}) {
-		viewsOptions = /** @type {ViewsOptions} */ (merge(defaultViewsOptions, viewsOptions));
-		paddingOptions = /** @type {PaddingOptions} */ (merge(defaultPaddingOptions, paddingOptions));
-		xTicksOptions = /** @type {XTicksOptions} */ (merge(defaultXTicksOptions, xTicksOptions));
-		yTicksOptions = /** @type {YTicksOptions} */ (merge(defaultYTicksOptions, yTicksOptions));
-		ySecondaryTicksOptions = /** @type {YTicksOptions} */ (merge(defaultYTicksOptions, ySecondaryTicksOptions));
-		gridOptions = /** @type {LineOptions} */ (merge(defaultLineOptions, gridOptions));
-		rulerOptions = /** @type {LineOptions} */ (merge(defaultLineOptions, rulerOptions));
-		emptyTextOptions = /** @type {EmptyTextOptions} */ (merge(defaultEmptyTextOptions, emptyTextOptions));
+	constructor(canvas, options = {}) {
+		const viewEntries = options.views || [];
+		const viewsOptions = /** @type {ViewsOptions} */ (
+			merge(defaultViewsOptions, options.viewsOptions || {})
+		);
+		const paddingOptions = /** @type {PaddingOptions} */ (
+			merge(defaultPaddingOptions, options.padding || {})
+		);
+		const xTicksOptions = /** @type {XTicksOptions} */ (
+			merge(defaultXTicksOptions, options.xTicks || {})
+		);
+		const yTicksOptions = /** @type {YTicksOptions} */ (
+			merge(defaultYTicksOptions, options.yTicks || {})
+		);
+		const ySecondaryTicksOptions = /** @type {YTicksOptions} */ (
+			merge(defaultYTicksOptions, options.ySecondaryTicks || {})
+		);
+		const gridOptions = /** @type {LineOptions} */ (
+			merge(defaultLineOptions, options.grid || {})
+		);
+		const rulerOptions = /** @type {LineOptions} */ (
+			merge(defaultLineOptions, options.ruler || {})
+		);
+		const emptyTextOptions = /** @type {EmptyTextOptions} */ (
+			merge(defaultEmptyTextOptions, options.emptyText || {})
+		);
 
 		/**
 		 * @type {HTMLCanvasElement}
@@ -327,7 +346,7 @@ export default class Chart {
 		 */
 		this._ySecondaryScale = null;
 
-		if (ySecondaryViews.length) {
+		if (viewEntries.some((entry) => entry.ySecondary)) {
 			this._ySecondaryScale = new YLinearScale({
 				nice: ySecondaryTicksOptions.nice
 			});
@@ -337,7 +356,16 @@ export default class Chart {
 		 * @type {Array<IView>}
 		 * @private
 		 */
-		this._views = this._createViews(viewTypes, viewsOptions, ySecondaryViews);
+		this._views = this._createViews(viewEntries.map((entry) => entry.type), viewsOptions);
+
+		/**
+		 * @type {Map<IView, IScale>}
+		 * @private
+		 */
+		this._viewToYScale = new Map(this._views.map((view, index) => [
+			view,
+			viewEntries[index].ySecondary ? this._ySecondaryScale : this._yScale
+		]));
 
 		/**
 		 * @type {Map<IView, Array<Graph>>}
@@ -346,16 +374,10 @@ export default class Chart {
 		this._viewToGraphs = new Map(this._views.map((view) => [view, []]));
 
 		/**
-		 * @type {ViewHelpers}
+		 * @type {ViewDrawHelpers}
 		 * @private
 		 */
-		this._viewHelpers = this._createViewHelpers();
-
-		/**
-		 * @type {PaddingOptions}
-		 * @private
-		 */
-		this._paddingOptions = paddingOptions;
+		this._viewDrawHelpers = this._createViewDrawHelpers();
 
 		/**
 		 * @type {Array<Graph>}
@@ -454,6 +476,12 @@ export default class Chart {
 		this._ySecondaryTickToVisibility = new Map();
 
 		/**
+		 * @type {PaddingOptions}
+		 * @private
+		 */
+		this._paddingOptions = paddingOptions;
+
+		/**
 		 * @type {LineOptions}
 		 * @private
 		 */
@@ -489,30 +517,7 @@ export default class Chart {
 		 */
 		this._drawListeners = [];
 
-		this._xScale.setTicksCount(xTicksOptions.count);
-		this._xScale.setPadding([paddingOptions.left, paddingOptions.right]);
-
-		this._yScale.setTicksCount(yTicksOptions.count);
-		this._yScale.setPadding([paddingOptions.top, paddingOptions.bottom]);
-		this._yScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
-
-		this._yScale.setTransitionListeners({
-			onStart: this._onYScaleTransitionStart.bind(this, this._yScale),
-			onUpdate: this._draw.bind(this),
-			onComplete: this._updateYTicks.bind(this, this._yScale)
-		});
-
-		if (this._ySecondaryScale) {
-			this._ySecondaryScale.setTicksCount(ySecondaryTicksOptions.count);
-			this._ySecondaryScale.setPadding([paddingOptions.top, paddingOptions.bottom]);
-			this._ySecondaryScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
-
-			this._ySecondaryScale.setTransitionListeners({
-				onStart: this._onYScaleTransitionStart.bind(this, this._ySecondaryScale),
-				onUpdate: this._draw.bind(this),
-				onComplete: this._updateYTicks.bind(this, this._ySecondaryScale)
-			});
-		}
+		this._initScales();
 	}
 
 	/**
@@ -557,17 +562,11 @@ export default class Chart {
 			viewGraphs[index] = graph;
 		}
 
-		const otherGraphs = this._getActiveGraphs()
-			.filter((someGraph) => someGraph !== graph);
-
-		const otherViewGraphs = this._getViewActiveGraphs(view)
-			.filter((someGraph) => someGraph !== graph);
-
-		view.addGraphToXScale(graph, otherGraphs, this._viewHelpers);
-		view.addGraphToYScale(graph, otherViewGraphs, this._viewHelpers);
+		this._updateXScale();
+		this._updateYScale(this._viewToYScale.get(view));
 
 		this._stopCurrentGraphTransition(graph);
-		this._setupAddingGraphTransition(graph);
+		this._setupGraphFadeInTransition(graph);
 	}
 
 	/**
@@ -576,14 +575,16 @@ export default class Chart {
 	removeGraph(graph) {
 		const view = this._graphToView.get(graph);
 
-		const otherGraphs = this._getActiveGraphs()
-			.filter((someGraph) => someGraph !== graph);
+		if (!this._graphs.includes(graph)) {
+			throw new Error('Unknown graph');
+		}
 
-		const otherViewGraphs = this._getViewActiveGraphs(view)
-			.filter((someGraph) => someGraph !== graph);
+		if (!this._inactiveGraphs.includes(graph)) {
+			this._inactiveGraphs.push(graph);
+		}
 
-		view.removeGraphFromXScale(graph, otherGraphs, this._viewHelpers);
-		view.removeGraphFromYScale(graph, otherViewGraphs, this._viewHelpers);
+		this._updateXScale();
+		this._updateYScale(this._viewToYScale.get(view));
 
 		if (this._xScale.isEmpty()) {
 			this._clearGraphs();
@@ -593,7 +594,7 @@ export default class Chart {
 		}
 
 		this._stopCurrentGraphTransition(graph);
-		this._setupRemovingGraphTransition(graph);
+		this._setupGraphFadeOutTransition(graph);
 	}
 
 	/**
@@ -617,7 +618,7 @@ export default class Chart {
 		});
 
 		this._views.forEach((view) => {
-			view.updateYScaleRange(this._getViewActiveGraphs(view), this._viewHelpers);
+			this._updateYScaleRangeByView(this._viewToYScale.get(view), view);
 		});
 	}
 
@@ -632,6 +633,10 @@ export default class Chart {
 
 			if (view instanceof BarView) {
 				view.setOptions(options.bar);
+			}
+
+			if (view instanceof AreaView) {
+				view.setOptions(options.area);
 			}
 		});
 	}
@@ -743,6 +748,8 @@ export default class Chart {
 			return ViewType.LINE;
 		} else if (view instanceof BarView) {
 			return ViewType.BAR;
+		} else if (view instanceof AreaView) {
+			return ViewType.AREA;
 		}
 	}
 
@@ -961,9 +968,9 @@ export default class Chart {
 			return;
 		}
 
-		this._drawRulers();
 		this._drawViews();
 		this._drawGrid();
+		this._drawRulers();
 		this._drawXTicks();
 		this._drawYTicks();
 	}
@@ -973,7 +980,20 @@ export default class Chart {
 	 */
 	_drawViews() {
 		this._views.forEach((view) => {
-			view.draw(this._viewToGraphs.get(view), this._viewHelpers);
+			const xScale = this._xScale;
+			const yScale = this._viewToYScale.get(view);
+			const graphs = this._viewToGraphs.get(view);
+
+			this._context.save();
+
+			this._context.translate(
+				xScale.getPixelsPerValue() * xScale.getFitStart() * -1,
+				yScale.getPixelsPerValue() * yScale.getFitStart()
+			);
+
+			view.draw(this._context, xScale, yScale, graphs, this._viewDrawHelpers);
+
+			this._context.restore();
 		});
 	}
 
@@ -1167,6 +1187,120 @@ export default class Chart {
 
 		this._context.fillStyle = this._emptyTextOptions.color;
 		this._context.fillText(this._emptyTextOptions.text, ...center);
+	}
+
+	/**
+	 * @private
+	 */
+	_initScales() {
+		this._xScale.setTicksCount(this._xTicksOptions.count);
+		this._xScale.setPadding([
+			this._paddingOptions.left,
+			this._paddingOptions.right
+		]);
+
+		this._yScale.setTicksCount(this._yTicksOptions.count);
+		this._yScale.setPadding([
+			this._paddingOptions.top,
+			this._paddingOptions.bottom
+		]);
+
+		this._yScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
+		this._yScale.setTransitionListeners({
+			onStart: this._onYScaleTransitionStart.bind(this, this._yScale),
+			onUpdate: this._draw.bind(this),
+			onComplete: this._updateYTicks.bind(this, this._yScale)
+		});
+
+		if (this._ySecondaryScale) {
+			this._ySecondaryScale.setTicksCount(this._ySecondaryTicksOptions.count);
+			this._ySecondaryScale.setPadding([
+				this._paddingOptions.top,
+				this._paddingOptions.bottom
+			]);
+
+			this._ySecondaryScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
+			this._ySecondaryScale.setTransitionListeners({
+				onStart: this._onYScaleTransitionStart.bind(this, this._ySecondaryScale),
+				onUpdate: this._draw.bind(this),
+				onComplete: this._updateYTicks.bind(this, this._ySecondaryScale)
+			});
+		}
+	}
+
+	/**
+	 * @private
+	 */
+	_updateXScale() {
+		const activeGraphs = this._getActiveGraphs();
+
+		const xMins = activeGraphs.map((graph) => graph.getMinX());
+		const xMaxes = activeGraphs.map((graph) => graph.getMaxX());
+
+		this._xScale.setStart(findMin(xMins, identity));
+		this._xScale.setEnd(findMax(xMaxes, identity));
+	}
+
+	/**
+	 * @param {IScale} yScale
+	 * @private
+	 */
+	_updateYScale(yScale) {
+		const views = [];
+		Array.from(this._viewToYScale.entries())
+			.forEach(([view, someScale]) => {
+				if (someScale === yScale) {
+					views.push(view);
+				}
+			});
+
+		const yScaleStarts = views.map((view) =>
+			view.findYScaleStart(this._getViewActiveGraphs(view))
+		);
+
+		const yScaleEnds = views.map((view) =>
+			view.findYScaleEnd(this._getViewActiveGraphs(view))
+		);
+
+		yScale.setStart(findMin(yScaleStarts, identity));
+		yScale.setEnd(findMax(yScaleEnds, identity));
+
+		if (this._xScale.isRangeGiven()) {
+			const yScaleRangeStarts = views.map((view) =>
+				view.findYScaleRangeStart(this._getViewActiveGraphs(view))
+			);
+
+			const yScaleRangeEnds = views.map((view) =>
+				view.findYScaleRangeEnd(this._getViewActiveGraphs(view))
+			);
+
+			yScale.setRangeStart(findMin(yScaleRangeStarts, identity));
+			yScale.setRangeEnd(findMax(yScaleRangeEnds, identity));
+		}
+	}
+
+	/**
+	 * @param {IScale} yScale
+	 * @param {IView} view
+	 * @private
+	 */
+	_updateYScaleRangeByView(yScale, view) {
+		const activeGraphs = this._getViewActiveGraphs(view);
+		const activeRanges = activeGraphs.map((graph) => this._graphToRange.get(graph));
+
+		const yScaleRangeStart = yScale.getRangeStart();
+		const yScaleRangeEnd = yScale.getRangeEnd();
+
+		const yScaleNewRangeStart = view.findYScaleRangeStart(activeRanges);
+		const yScaleNewRangeEnd = view.findYScaleRangeEnd(activeRanges);
+
+		if (isNaN(yScaleRangeStart) || yScaleNewRangeStart < yScaleRangeStart) {
+			yScale.setRangeStart(yScaleNewRangeStart);
+		}
+
+		if (isNaN(yScaleRangeEnd) || yScaleNewRangeEnd > yScaleRangeEnd) {
+			yScale.setRangeEnd(yScaleNewRangeEnd);
+		}
 	}
 
 	/**
@@ -1487,7 +1621,7 @@ export default class Chart {
 	 * @param {Graph} graph
 	 * @private
 	 */
-	_setupAddingGraphTransition(graph) {
+	_setupGraphFadeInTransition(graph) {
 		const view = this._graphToView.get(graph);
 		const visibilityInterval = {from: this._graphToVisibility.get(graph), to: 1};
 
@@ -1516,7 +1650,7 @@ export default class Chart {
 	 * @param {Graph} graph
 	 * @private
 	 */
-	_setupRemovingGraphTransition(graph) {
+	_setupGraphFadeOutTransition(graph) {
 		const view = this._graphToView.get(graph);
 		const visibilityInterval = {from: this._graphToVisibility.get(graph), to: 0};
 
@@ -1554,7 +1688,6 @@ export default class Chart {
 			}
 		});
 
-		this._inactiveGraphs.push(graph);
 		this._graphToTransition.set(graph, transition);
 	}
 
@@ -1616,20 +1749,19 @@ export default class Chart {
 	/**
 	 * @param {Array<ViewType>} types
 	 * @param {ViewsOptions} options
-	 * @param {Array<number>} ySecondary
-	 * @return {Array<IView>}
 	 * @private
 	 */
-	_createViews(types, options, ySecondary) {
-		return types.map((type, index) => {
-			const yScale = ySecondary.includes(index) ? this._ySecondaryScale : this._yScale;
-
+	_createViews(types, options) {
+		return types.map((type) => {
 			switch (type) {
 				case ViewType.LINE:
-					return new LineView(this._context, this._xScale, yScale, options.line);
+					return new LineView(options.line);
 
 				case ViewType.BAR:
-					return new BarView(this._context, this._xScale, yScale, options.bar);
+					return new BarView(options.bar);
+
+				case ViewType.AREA:
+					return new AreaView(options.area);
 
 				default:
 					throw new Error(`Unsupported view type ${type}`);
@@ -1638,10 +1770,10 @@ export default class Chart {
 	}
 
 	/**
-	 * @return {ViewHelpers}
+	 * @return {ViewDrawHelpers}
 	 * @private
 	 */
-	_createViewHelpers() {
+	_createViewDrawHelpers() {
 		return {
 			getGraphRange: (graph) => this._graphToRange.get(graph),
 			getGraphVisibility: (graph) => this._graphToVisibility.get(graph),
@@ -1660,12 +1792,6 @@ class TicksFormatter {
 		 * @private
 		 */
 		this._maxCacheSize = maxCacheSize;
-
-		/**
-		 * @type {Map<number, string>}
-		 * @private
-		 */
-		this._compactCache = new Map();
 
 		/**
 		 * @type {Map<DateUnit, Map<number, string>>}
@@ -1688,74 +1814,53 @@ class TicksFormatter {
 	format(tick, type, scale) {
 		let formatted;
 
-		switch (type) {
-			case TicksType.DATE:
-				const ticksSpacing = scale.getTicksSpacing();
+		if (type === TicksType.DATE) {
+			const ticksSpacing = scale.getTicksSpacing();
 
-				const msInSecond = 1000;
-				const msInMinute = msInSecond * 60;
-				const msInHour = msInMinute * 60;
-				const msInDay = msInHour * 24;
-				const msInMonth = msInDay * 30;
-				const msInYear = msInMonth * 12;
+			const msInSecond = 1000;
+			const msInMinute = msInSecond * 60;
+			const msInHour = msInMinute * 60;
+			const msInDay = msInHour * 24;
+			const msInMonth = msInDay * 30;
+			const msInYear = msInMonth * 12;
 
-				/** @type {DateUnit} */ let unit;
-				if (ticksSpacing / msInYear >= 1) {
-					unit = DateUnit.YEAR;
-				} else if (ticksSpacing / msInMonth >= 1) {
-					unit = DateUnit.MONTH;
-				} else if (ticksSpacing / msInDay >= 1) {
-					unit = DateUnit.DAY;
-				} else if (ticksSpacing / msInHour >= 1) {
-					unit = DateUnit.HOUR;
-				} else if (ticksSpacing / msInMinute >= 1) {
-					unit = DateUnit.MINUTE;
-				} else if (ticksSpacing / msInSecond >= 1) {
-					unit = DateUnit.SECOND;
+			/** @type {DateUnit} */ let unit;
+			if (ticksSpacing / msInYear >= 1) {
+				unit = DateUnit.YEAR;
+			} else if (ticksSpacing / msInMonth >= 1) {
+				unit = DateUnit.MONTH;
+			} else if (ticksSpacing / msInDay >= 1) {
+				unit = DateUnit.DAY;
+			} else if (ticksSpacing / msInHour >= 1) {
+				unit = DateUnit.HOUR;
+			} else if (ticksSpacing / msInMinute >= 1) {
+				unit = DateUnit.MINUTE;
+			} else if (ticksSpacing / msInSecond >= 1) {
+				unit = DateUnit.SECOND;
+			}
+
+			const unitBucket = this._dateCache.get(unit);
+			if (unitBucket.has(tick)) {
+				formatted = unitBucket.get(tick);
+			} else {
+				formatted = formatDate(new Date(tick), unit);
+
+				if (unitBucket.size === this._maxCacheSize) {
+					unitBucket.clear();
 				}
 
-				const unitBucket = this._dateCache.get(unit);
-				if (unitBucket.has(tick)) {
-					formatted = unitBucket.get(tick);
-				} else {
-					formatted = formatDate(new Date(tick), unit);
-
-					if (unitBucket.size === this._maxCacheSize) {
-						unitBucket.clear();
-					}
-
-					unitBucket.set(tick, formatted);
-				}
-
-				break;
-
-			case TicksType.COMPACT:
-				if (this._compactCache.has(tick)) {
-					formatted = this._compactCache.get(tick);
-				} else {
-					formatted = compactNumber(tick);
-
-					if (this._compactCache.size === this._maxCacheSize) {
-						this._compactCache.clear();
-					}
-
-					this._compactCache.set(tick, formatted);
-				}
-
-				break;
-
-			default:
-				formatted = String(tick);
-
-				break;
+				unitBucket.set(tick, formatted);
+			}
 		}
 
-		return formatted;
+		if (type === TicksType.COMPACT) {
+			formatted = compactNumber(tick);
+		}
+
+		return formatted || String(tick);
 	}
 
 	clearCache() {
-		this._compactCache.clear();
-
 		Array.from(this._dateCache.values())
 			.forEach((unitBucket) => {
 				unitBucket.clear();
