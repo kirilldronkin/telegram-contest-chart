@@ -72,15 +72,15 @@ async function onLoad() {
 
 		let /** @type {string} */ title;
 		if (datasetIndex === 0) {
-			title = '#1 (Line)';
+			title = 'Line';
 		} else if (datasetIndex === 1) {
-			title = '#2 (Double Y Axis Line)';
+			title = 'Dual Axis Line';
 		} else if (datasetIndex === 2) {
-			title = '#3 (Stacked Bar)';
+			title = 'Stacked Bar';
 		} else if (datasetIndex === 3) {
-			title = '#4 (Bar)';
+			title = 'Bar';
 		} else if (datasetIndex === 4) {
-			title = '#5 (Stacked Area)';
+			title = 'Stacked Area';
 		}
 
 		let /** @type {PaneLayoutType} */ layout;
