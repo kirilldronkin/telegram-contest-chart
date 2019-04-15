@@ -57,4 +57,6 @@ const indexHTML = fs.readFileSync(path.join(rootPath, 'index.html.tpl'), 'utf-8'
 	.replace(/\n\s*/g, '');
 
 fs.writeFileSync(path.join(distPath, 'index.html'), indexHTML, 'utf-8');
+
 fsExtra.copySync(path.join(rootPath, 'data'), path.join(distPath, 'data'));
+fsExtra.copySync(path.join(rootPath, 'favicon.ico'), path.join(distPath, 'favicon.ico'));
