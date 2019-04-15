@@ -11,7 +11,12 @@ const THEME_STORAGE_KEY = 'telegram-contest-chart_theme';
 /**
  * @const {number}
  */
-const SCROLLING_STATE_TIME = 300;
+const SCROLLING_STATE_TIME = 500;
+
+/**
+ * @type {number}
+ */
+const PANE_DRAW_CHARTS_DELAY = 250;
 
 const panes = [];
 const panesContainer = document.querySelector('#panes');
@@ -93,9 +98,10 @@ async function onLoad() {
 
 		const pane = new Pane(title, graphs, layout);
 
+		panes.push(pane);
 		pane.init(panesContainer, currentTheme);
 
-		panes.push(pane);
+		setTimeout(() => pane.drawCharts(), datasetIndex * PANE_DRAW_CHARTS_DELAY);
 	});
 }
 

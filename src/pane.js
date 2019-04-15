@@ -281,22 +281,24 @@ export default class Pane {
 
 		parent.appendChild(this._container);
 
-		this._adjustColors(theme);
-		this._adjustForMobile();
-
-		this._zoomChart.resize();
-		this._zoomChart.draw();
-
-		this._overviewChart.resize();
-		this._overviewChart.draw();
-
 		this._cursor.observe(this._zoomChart);
 		this._cursor.resize();
 
 		this._zoombar.resize();
 		this._zoombar.setRange(ZOOMBAR_GRIP_SIZE, this._zoombarContainer.offsetWidth - ZOOMBAR_GRIP_SIZE);
 
+		this._adjustColors(theme);
+		this._adjustForMobile();
+
 		this._renderZoomRange();
+	}
+
+	drawCharts() {
+		this._zoomChart.resize();
+		this._zoomChart.draw();
+
+		this._overviewChart.resize();
+		this._overviewChart.draw();
 	}
 
 	/**
