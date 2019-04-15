@@ -82,6 +82,12 @@ export default class Cursor {
 		this._isMyDrawing = false;
 
 		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._rafId = NaN;
+
+		/**
 		 * @type {function(number, Map<Graph, Point>)}
 		 * @private
 		 */
@@ -158,6 +164,15 @@ export default class Cursor {
 	}
 
 	/**
+	 * @private
+	 */
+	_drawChart() {
+		this._isMyDrawing = true;
+		this._chart.draw();
+		this._isMyDrawing = false;
+	}
+
+	/**
 	 * @param {number} x
 	 * @param {Map<Graph, Point>} graphToHighlightedPoint
 	 * @param {number} leftOffset
@@ -227,10 +242,12 @@ export default class Cursor {
 
 		this._chart.highlight(NaN);
 		this._chart.removeRulers();
-		this._chart.draw();
+		this._drawChart();
 
 		this._lastMoveX = NaN;
 		this._lastMoveEvent = null;
+
+		cancelAnimationFrame(this._rafId);
 	}
 
 	/**
@@ -238,9 +255,7 @@ export default class Cursor {
 	 */
 	_onDraw() {
 		if (!this._isMyDrawing && this._lastMoveX) {
-			this._isMyDrawing = true;
 			this._reset();
-			this._isMyDrawing = false;
 		}
 	}
 
@@ -251,9 +266,12 @@ export default class Cursor {
 	_onMove(event) {
 		event = /** @type {MouseEvent|TouchEvent} */ (event);
 
+		const eventX = getEventX(event, this._canvas);
+		const eventY = getEventY(event, this._canvas);
+
 		const canvasRect = this._canvas.getBoundingClientRect();
-		const canvasX = getEventX(event, this._canvas) - canvasRect.left;
-		const canvasY = getEventY(event, this._canvas) - canvasRect.top;
+		const canvasX = eventX - canvasRect.left;
+		const canvasY = eventY - canvasRect.top;
 
 		if (canvasX === this._lastMoveX) {
 			return;
@@ -292,11 +310,12 @@ export default class Cursor {
 			this._chart.addRuler(x);
 		});
 
-		this._isMyDrawing = true;
-		this._chart.draw();
-		this._isMyDrawing = false;
+		const x = this._chart.getXByPixels(canvasX);
 
-		this._showToolbar(this._chart.getXByPixels(canvasX), graphToHighlightedPoint, canvasX, canvasY);
+		this._rafId = requestAnimationFrame(() => {
+			this._drawChart();
+			this._showToolbar(x, graphToHighlightedPoint, canvasX, canvasY);
+		});
 
 		this._lastMoveX = canvasX;
 		this._lastMoveEvent = event;

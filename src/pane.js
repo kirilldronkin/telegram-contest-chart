@@ -14,11 +14,6 @@ const MOBILE_MEDIA_QUERY = 'only screen and (max-width: 480px) and (orientation:
 /**
  * @const {number}
  */
-const ZOOMBAR_GRIP_SIZE = 10;
-
-/**
- * @const {number}
- */
 const RANGE_RENDER_BACKPRESSURE_TIME = 100;
 
 /**
@@ -188,12 +183,6 @@ export default class Pane {
 		 * @type {HTMLDivElement}
 		 * @private
 		 */
-		this._zoombarContainer = zoombarContainer;
-
-		/**
-		 * @type {HTMLDivElement}
-		 * @private
-		 */
 		this._zoomRangeElement = zoomRangeElement;
 
 		/**
@@ -234,70 +223,72 @@ export default class Pane {
 	 * @param {Theme} theme
 	 */
 	init(parent, theme) {
-		this._listenEvents();
-
-		const checkboxes = [];
+		parent.appendChild(this._container);
 
 		this._graphs.forEach((graph, index) => {
-			const checkboxContainer = createDivElement();
-			const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
-
-			checkboxes.push(checkbox);
-
-			checkbox.setCheckedStateChangeListener(() => {
-				this._toggleGraphs([graph], checkbox.isChecked());
-			});
-
-			checkbox.setLongTapListener(() => {
-				const drawnGraphs = this._zoomChart.getGraphs();
-				const notDrawnGraphs = this._graphs.filter((someGraph) => !drawnGraphs.includes(someGraph));
-
-				if (checkbox.isChecked()) {
-					this._toggleGraphs(drawnGraphs.filter((someGraph) => someGraph !== graph), false);
-
-					checkboxes.forEach((checkbox, checkboxIndex) => {
-						if (checkboxIndex !== index) {
-							checkbox.setCheckedState(false);
-						}
-					});
-				} else {
-					this._toggleGraphs(notDrawnGraphs.filter((someGraph) => someGraph !== graph), true);
-
-					checkboxes.forEach((checkbox, checkboxIndex) => {
-						if (checkboxIndex !== index) {
-							checkbox.setCheckedState(true);
-						}
-					});
-				}
-			});
-
 			const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
 
 			this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
 			this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
-
-			this._legendElement.appendChild(checkboxContainer);
 		});
 
-		parent.appendChild(this._container);
-
 		this._cursor.observe(this._zoomChart);
-		this._cursor.resize();
 
+		this._zoomChart.resize();
+		this._overviewChart.resize();
+		this._cursor.resize();
 		this._zoombar.resize();
-		this._zoombar.setRange(ZOOMBAR_GRIP_SIZE, this._zoombarContainer.offsetWidth - ZOOMBAR_GRIP_SIZE);
+
+		let rangeStart = NaN;
+		let rangeEnd = NaN;
+
+		const firstGraph = this._graphs[0];
+
+		for (let i = firstGraph.points.length - 1; i !== 0; i--) {
+			const point = firstGraph.points[i];
+			const pointDate = new Date(point.x);
+
+			if (isNaN(rangeEnd)) {
+				rangeEnd = point.x;
+			}
+
+			if (i === 0) {
+				rangeStart = point.x;
+				break;
+			}
+
+			const rangeEndDate = new Date(rangeEnd);
+
+			if (
+				pointDate.getDate() === rangeEndDate.getDate() &&
+				pointDate.getMonth() !== rangeEndDate.getMonth()
+			) {
+				rangeStart = point.x;
+				break;
+			}
+		}
+
+		this._overviewChart.fit();
+
+		this._zoomChart.setRange(rangeStart, rangeEnd);
+		this._zoomChart.fit();
+
+		const rangeStartPixels = this._overviewChart.getPixelsByX(rangeStart);
+		const rangeEndPixels = this._overviewChart.getPixelsByX(rangeEnd);
+
+		this._zoombar.setRange(rangeStartPixels, rangeEndPixels);
 
 		this._adjustColors(theme);
 		this._adjustForMobile();
 
+		this._renderLegend();
 		this._renderZoomRange();
+
+		this._listenEvents();
 	}
 
 	drawCharts() {
-		this._zoomChart.resize();
 		this._zoomChart.draw();
-
-		this._overviewChart.resize();
 		this._overviewChart.draw();
 	}
 
@@ -310,22 +301,25 @@ export default class Pane {
 	}
 
 	/**
-	 * @param {Array<Graph>} graphs
-	 * @param {boolean} show
+	 * @param {{
+	 *     show: (Array<Graph>|undefined),
+	 *     hide: (Array<Graph>|undefined)
+	 * }} opt
 	 * @private
 	 */
-	_toggleGraphs(graphs, show) {
-		graphs.forEach((graph) => {
-			const index = this._graphs.indexOf(graph);
-			const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
+	_toggleGraphs({show = [], hide = []} = {}) {
+		const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
 
-			if (show) {
-				this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
-				this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
-			} else {
-				this._zoomChart.removeGraph(graph);
-				this._overviewChart.removeGraph(graph);
-			}
+		show.forEach((graph) => {
+			const index = this._graphs.indexOf(graph);
+
+			this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
+			this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
+		});
+
+		hide.forEach((graph) => {
+			this._zoomChart.removeGraph(graph);
+			this._overviewChart.removeGraph(graph);
 		});
 
 		this._overviewChart.draw();
@@ -481,6 +475,45 @@ export default class Pane {
 		});
 
 		this._zoombar.setRangeChangeListener(this._zoom.bind(this));
+	}
+
+	/**
+	 * @private
+	 */
+	_renderLegend() {
+		const checkboxes = [];
+
+		this._graphs.forEach((graph, index) => {
+			const checkboxContainer = createDivElement();
+			const checkbox = new Checkbox(checkboxContainer, graph.name, graph.color);
+
+			checkboxes.push(checkbox);
+
+			checkbox.setCheckedStateChangeListener(() => {
+				this._toggleGraphs({
+					show: checkbox.isChecked() ? [graph] : [],
+					hide: checkbox.isChecked() ? [] : [graph],
+				});
+			});
+
+			checkbox.setLongTapListener(() => {
+				const shownGraphs = this._overviewChart.getGraphs();
+				const otherShownGraphs = this._graphs.filter((someGraph) =>
+					shownGraphs.includes(someGraph) && someGraph !== graph
+				);
+
+				this._toggleGraphs({
+					show: shownGraphs.includes(graph) ? [] : [graph],
+					hide: otherShownGraphs
+				});
+
+				checkboxes.forEach((checkbox, checkboxIndex) => {
+					checkbox.setCheckedState(checkboxIndex === index);
+				});
+			});
+
+			this._legendElement.appendChild(checkboxContainer);
+		});
 	}
 
 	/**

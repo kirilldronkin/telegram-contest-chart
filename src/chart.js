@@ -863,6 +863,36 @@ export default class Chart {
 		}
 	}
 
+	/**
+	 * @param {number} xPixels
+	 */
+	highlight(xPixels) {
+		this._graphToHighlightedPoint.clear();
+
+		if (isNaN(xPixels)) {
+			return;
+		}
+
+		this._views.forEach((view) => {
+			this._viewToGraphs.get(view)
+				.forEach((graph) => {
+					const x = this.getXByPixels(xPixels);
+					const range = this._getGraphRange(graph);
+
+					const [middle] = graph.getRange(x, x, {
+						interpolation: view.getInterpolationType()
+					});
+
+					const end = range.find((point) => point.x > middle.x) || middle;
+					const start = range[range.indexOf(end) - 1];
+
+					if (start && end) {
+						this._graphToHighlightedPoint.set(graph, view.selectHighlightedPoint(start, middle, end));
+					}
+				});
+		});
+	}
+
 	resize() {
 		const width = this._canvas.parentNode.offsetWidth;
 		const height = this._canvas.parentNode.offsetHeight;
@@ -904,34 +934,8 @@ export default class Chart {
 		this._context.scale(ratio, ratio);
 	}
 
-	/**
-	 * @param {number} xPixels
-	 */
-	highlight(xPixels) {
-		this._graphToHighlightedPoint.clear();
-
-		if (isNaN(xPixels)) {
-			return;
-		}
-
-		this._views.forEach((view) => {
-			this._viewToGraphs.get(view)
-				.forEach((graph) => {
-					const x = this.getXByPixels(xPixels);
-					const range = this._getGraphRange(graph);
-
-					const [middle] = graph.getRange(x, x, {
-						interpolation: view.getInterpolationType()
-					});
-
-					const end = range.find((point) => point.x > middle.x) || middle;
-					const start = range[range.indexOf(end) - 1];
-
-					if (start && end) {
-						this._graphToHighlightedPoint.set(graph, view.selectHighlightedPoint(start, middle, end));
-					}
-				});
-		});
+	fit() {
+		this._fitScales();
 	}
 
 	draw() {
@@ -1799,6 +1803,12 @@ class TicksFormatter {
 		 */
 		this._dateCache = new Map();
 
+		/**
+		 * @type {Map<number, string>}
+		 * @private
+		 */
+		this._compactCache = new Map();
+
 		Object.values(DateUnit)
 			.forEach((unit) => {
 				this._dateCache.set(unit, new Map());
@@ -1812,8 +1822,6 @@ class TicksFormatter {
 	 * @return {string}
 	 */
 	format(tick, type, scale) {
-		let formatted;
-
 		if (type === TicksType.DATE) {
 			const ticksSpacing = scale.getTicksSpacing();
 
@@ -1841,26 +1849,42 @@ class TicksFormatter {
 
 			const unitBucket = this._dateCache.get(unit);
 			if (unitBucket.has(tick)) {
-				formatted = unitBucket.get(tick);
-			} else {
-				formatted = formatDate(new Date(tick), unit);
-
-				if (unitBucket.size === this._maxCacheSize) {
-					unitBucket.clear();
-				}
-
-				unitBucket.set(tick, formatted);
+				return unitBucket.get(tick);
 			}
+
+			const date = formatDate(new Date(tick), unit);
+
+			if (unitBucket.size === this._maxCacheSize) {
+				unitBucket.clear();
+			}
+
+			unitBucket.set(tick, date);
+
+			return date;
 		}
 
 		if (type === TicksType.COMPACT) {
-			formatted = compactNumber(tick);
+			if (this._compactCache.has(tick)) {
+				return this._compactCache.get(tick);
+			}
+
+			const compact = compactNumber(tick);
+
+			if (this._compactCache.size === this._maxCacheSize) {
+				this._compactCache.clear();
+			}
+
+			this._compactCache.set(tick, compact);
+
+			return compact;
 		}
 
-		return formatted || String(tick);
+		return String(tick);
 	}
 
 	clearCache() {
+		this._compactCache.clear();
+
 		Array.from(this._dateCache.values())
 			.forEach((unitBucket) => {
 				unitBucket.clear();
