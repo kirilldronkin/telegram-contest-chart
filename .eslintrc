@@ -3,6 +3,13 @@
   "parserOptions": {
     "ecmaVersion": 2018
   },
+  "env": {
+    "es6": true
+  },
+  "rules": {
+    "no-self-assign": "off",
+    "no-case-declarations": "off"
+  },
   "overrides": [
     {
       "files": "src/**",
@@ -17,6 +24,9 @@
       "files": "scripts/**",
       "env": {
         "node": true
+      },
+      "rules": {
+        "no-console": "off"
       }
     }
   ]

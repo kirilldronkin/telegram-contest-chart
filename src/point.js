@@ -22,16 +22,4 @@ export default class Point {
 		 */
 		this.isInterpolated = isInterpolated;
 	}
-
-	/**
-	 * @param {number} x
-	 * @param {Point} point
-	 */
-	interpolate(x, point) {
-		const y = this.y + (x - this.x) * ((point.y - this.y) / (point.x - this.x));
-
-		return new Point(x, y, {
-			isInterpolated: true
-		});
-	}
 }

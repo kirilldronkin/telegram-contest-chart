@@ -21,15 +21,140 @@ function unique(values) {
 }
 
 /**
+ * @param {Array} array
+ * @param {...*} items
+ */
+function pull(array, ...items) {
+	items.forEach((item) => {
+		array.splice(array.indexOf(item), 1);
+	});
+}
+
+/**
+ * @param {...Object} objects
+ * @return {Object}
+ */
+function merge(...objects) {
+	return Object.assign({}, ...objects);
+}
+
+/**
+ * @template RESULT_TYPE
+ * @param {function(...?): RESULT_TYPE} func
+ * @param {number} time
+ * @return {function(...?): RESULT_TYPE}
+ */
+function debounce(func, time) {
+	let timer = null;
+
+	function debounced(...args) {
+		function complete() {
+			timer = null;
+
+			return func(...args);
+		}
+
+		if (timer) {
+			clearTimeout(timer);
+		}
+
+		timer = setTimeout(complete, time);
+	}
+
+	return debounced;
+}
+
+/**
+ * @template RESULT_TYPE
+ * @param {function(...?): RESULT_TYPE} func
+ * @param {number} time
+ * @return {function(...?): RESULT_TYPE}
+ */
+function throttle(func, time) {
+	let lastTimestamp = null;
+
+	return function(...args) {
+		const now = Date.now();
+
+		if (!lastTimestamp || now - lastTimestamp >= time) {
+			lastTimestamp = now;
+			func(...args);
+		}
+	};
+}
+
+/**
+ * @param {MouseEvent|TouchEvent} event
+ * @param {HTMLElement} target
+ * @return {number}
+ */
+function getEventX(event, target) {
+	if (!event.touches) {
+		return event.clientX;
+	}
+
+	const touch = Array.from(event.touches).find((touch) => touch.target === target);
+	if (touch) {
+		return touch.clientX;
+	}
+
+	return NaN;
+}
+
+/**
+ * @param {MouseEvent|TouchEvent} event
+ * @param {HTMLElement} target
+ * @return {number}
+ */
+function getEventY(event, target) {
+	if (!event.touches) {
+		return event.clientY;
+	}
+
+	const touch = Array.from(event.touches).find((touch) => touch.target === target);
+	if (touch) {
+		return touch.clientY;
+	}
+
+	return NaN;
+}
+
+let passiveEventsSupported;
+/**
+ * @return {boolean}
+ */
+function isPassiveEventsSupported() {
+	if (typeof passiveEventsSupported === 'undefined') {
+		try {
+			const options = {
+				get passive() {
+					passiveEventsSupported = true;
+				}
+			};
+
+			window.addEventListener('test', noop, options);
+			window.removeEventListener('test', noop, options);
+		} catch(err) {
+			passiveEventsSupported = false;
+		}
+	}
+
+	return passiveEventsSupported;
+}
+
+/**
  * @param {string=} className
  * @param {string=} text
  * @returns {HTMLDivElement}
  */
-function createDiv(className, text) {
+function createDivElement(className = '', text) {
 	const div = /** @type {HTMLDivElement} */ (document.createElement('div'));
 
 	if (className) {
-		div.classList.add(className);
+		className.split(' ')
+			.forEach((entry) => {
+				div.classList.add(entry);
+			});
 	}
 
 	if (text) {
@@ -54,14 +179,6 @@ function hexToRGB(hex, alpha) {
 	const b = parseInt(hex.slice(5, 7), 16);
 
 	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-/**
- * @param {string} text
- * @return {string}
- */
-function createTextBackground(text) {
-	return Array(text.length).fill('█').join('');
 }
 
 /**
@@ -184,13 +301,32 @@ function compactNumber(value) {
 }
 
 /**
+ * @param {number} value
+ * @return {string}
+ */
+function formatNumber(value) {
+	return value.toString()
+		.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+}
+
+/**
  * @param {number} index
  * @return {string}
  */
 function getShortMonthName(index) {
 	const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-	return names[index] || 'Unknown';
+	return names[index] || 'Invalid';
+}
+
+/**
+ * @param {number} index
+ * @return {string}
+ */
+function getShortWeekDayName(index) {
+	const names = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'];
+
+	return names[index] || 'Invalid';
 }
 
 /**
@@ -224,14 +360,24 @@ function formatDate(date, unit) {
 	} else if (unit === DateUnit.DAY) {
 		return `${getShortMonthName(date.getMonth())} ${date.getDate()}`;
 	} else if (unit === DateUnit.HOUR) {
-		return `${getShortMonthName(date.getMonth())} ${date.getDate()} ${to12Hours(date)}`;
+		return `${date.getDate()} ${to12Hours(date)}`;
 	} else if (unit === DateUnit.MINUTE) {
 		return `${to12Hours(date, {withMinutes: true})}`
 	} else if (unit === DateUnit.SECOND) {
 		return `${date.getMinutes()}:${String(date.getSeconds()).padStart(2, '0')}`;
+	} else if (unit === DateUnit.MILLISECOND) {
+		return `${date.getSeconds()}, ${date.getMilliseconds()}`;
 	}
 
 	return date.toString();
+}
+
+/**
+ * @param {Date} date
+ * @return {string}
+ */
+function formatDay(date) {
+	return `${getShortMonthName(date.getMonth())} ${date.getDate()} ${date.getFullYear()}`;
 }
 
 /**
@@ -243,16 +389,29 @@ const DateUnit = {
 	DAY: 'day',
 	HOUR: 'hour',
 	MINUTE: 'minute',
-	SECOND: 'second'
+	SECOND: 'second',
+	MILLISECOND: 'millisecond',
 };
+
+class NotImplementedError extends Error {
+	constructor() {
+		super('Not implemented');
+	}
+}
 
 export {
 	noop,
 	identity,
 	unique,
-	createDiv,
+	pull,
+	merge,
+	debounce,
+	throttle,
+	getEventX,
+	getEventY,
+	isPassiveEventsSupported,
+	createDivElement,
 	hexToRGB,
-	createTextBackground,
 	clamp,
 	findMax,
 	findMin,
@@ -260,8 +419,12 @@ export {
 	easeOutQuart,
 	niceNumber,
 	compactNumber,
+	formatNumber,
 	getShortMonthName,
+	getShortWeekDayName,
 	to12Hours,
 	formatDate,
-	DateUnit
+	formatDay,
+	DateUnit,
+	NotImplementedError
 };

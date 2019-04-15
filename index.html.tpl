@@ -4,27 +4,23 @@
 		<title>Telegram Contest</title>
 
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+		<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 
 		%STYLES%
 	</head>
-	<body>
-		<div id="select"></div>
-		<div id="title"></div>
+	<body class=_loading>
+		<script type="text/javascript">
+			document.body.classList.add('_' +  (window.localStorage.getItem('telegram-contest-chart_theme') || 'day'));
+		</script>
 
-		<div id="zoom-chart">
-			<canvas id="zoom-chart-canvas"></canvas>
-		</div>
-
-		<div id="overview-chart">
-			<canvas id="overview-chart-canvas"></canvas>
-			<div id="zoombar"></div>
-		</div>
-
-		<div id="legend"></div>
+		<div id="panes"></div>
 		<div id="theme-switch-button"></div>
 
-		<a id="repo-link" href="https://github.com/kirilldronkin/telegram-contest-chart" target="_blank"></a>
+		<a id="repo-link" href="https://github.com/kirilldronkin/telegram-contest-chart" target="_blank">
+			View on GitHub
+		</a>
 
 		%SCRIPTS%
 	</body>

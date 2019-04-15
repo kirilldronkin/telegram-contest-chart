@@ -30,15 +30,27 @@ export const Timing = {
 
 export default class Transition {
 	/**
-	 * @param {Array<Interval>} intervals
-	 * @param {number} duration
-	 * @param {Timing} timing
-	 * @param {function(Array<number>)=} onProgress
-	 * @param {function()=} onComplete
-	 * @param {function()=} onUpdate
-	 * @param {function()=} onCancel
+	 * @param {{
+	 *     intervals: Array<Interval>,
+	 *     duration: number,
+	 *     timing: Timing,
+	 *     onStart: (function()|undefined),
+	 *     onProgress: (function(Array<number>)|undefined),
+	 *     onComplete: (function()|undefined),
+	 *     onUpdate: (function()|undefined),
+	 *     onCancel: (function()|undefined)
+	 * }} opt
 	 */
-	constructor(intervals, duration, timing, onProgress = noop, onComplete = noop, onUpdate = noop, onCancel = noop) {
+	constructor({
+    intervals,
+    duration,
+    timing,
+    onStart = noop,
+    onProgress = noop,
+    onComplete = noop,
+    onUpdate = noop,
+    onCancel = noop
+	}) {
 		/**
 		 * @type {Array<Interval>}
 		 * @private
@@ -60,6 +72,12 @@ export default class Transition {
 			[Timing.EASE_IN]: easeInQuart,
 			[Timing.EASE_OUT]: easeOutQuart
 		}[timing];
+
+		/**
+		 * @type {function()}
+		 * @private
+		 */
+		this._onStart = onStart;
 
 		/**
 		 * @type {function(Array<number>)}
@@ -98,6 +116,12 @@ export default class Transition {
 		this._values = [];
 
 		/**
+		 * @type {number}
+		 * @private
+		 */
+		this._progress = 0;
+
+		/**
 		 * @type {State}
 		 * @private
 		 */
@@ -132,6 +156,13 @@ export default class Transition {
 		return this._values;
 	}
 
+	/**
+	 * @return {number}
+	 */
+	getProgress() {
+		return this._progress;
+	}
+
 	start() {
 		if (this.isActive()) {
 			this._throwInvalidState();
@@ -144,11 +175,11 @@ export default class Transition {
 				start = time;
 			}
 
-			const passed = min(time - start, this._duration);
+			this._progress = this._timingFunction(min(time - start, this._duration) / this._duration);
 
 			this._values = this._intervals.map((interval) => {
 				const range = interval.to - interval.from;
-				const value = interval.from + ((range) * (this._timingFunction(passed / this._duration)));
+				const value = interval.from + ((range) * (this._progress));
 
 				if (range > 0) {
 					return min(value, interval.to);
@@ -159,7 +190,7 @@ export default class Transition {
 
 			this._onProgress(this._values);
 
-			if (passed < this._duration) {
+			if (this._progress < 1) {
 				this._rafId = requestAnimationFrame(step);
 			} else {
 				this._state = State.COMPLETE;
@@ -171,7 +202,9 @@ export default class Transition {
 
 		this._rafId = requestAnimationFrame(step);
 		this._values = this._intervals.map((interval) => interval.from);
+
 		this._state = State.ACTIVE;
+		this._onStart();
 	}
 
 	stop() {
@@ -181,12 +214,16 @@ export default class Transition {
 
 		cancelAnimationFrame(this._rafId);
 
-		this._state = State.PENDING;
 		this._values = [];
+		this._progress = 0;
 
+		this._state = State.PENDING;
 		this._onCancel();
 	}
 
+	/**
+	 * @private
+	 */
 	_throwInvalidState() {
 		throw new Error(`Invalid state ${this._state}`);
 	}

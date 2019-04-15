@@ -3,6 +3,15 @@ import {findMax, findMin} from './utils.js';
 
 const {floor} = Math;
 
+/**
+ * @enum {string}
+ */
+export const InterpolationType = {
+	NONE: 'none',
+	NEIGHBOR: 'neighbor',
+	LINEAR: 'linear'
+};
+
 export default class Graph {
 	/**
 	 * @param {string} name
@@ -27,60 +36,74 @@ export default class Graph {
 	}
 
 	/**
-	 * @return {{x: number, y: number}}
+	 * @return {number}
 	 */
-	getMin() {
-		return {
-			x: findMin(this.points, (point) => point.x, {
-				sorted: true
-			}),
-			y: findMin(this.points, (point) => point.y)
-		};
+	getMinX() {
+		return findMin(this.points, (point) => point.x, {
+			sorted: true
+		});
 	}
 
 	/**
-	 * @return {{x: number, y: number}}
+	 * @return {number}
 	 */
-	getMax() {
-		return {
-			x: findMax(this.points, (point) => point.x, {
-				sorted: true
-			}),
-			y: findMax(this.points, (point) => point.y)
-		};
+	getMinY() {
+		return findMin(this.points, (point) => point.y);
 	}
 
 	/**
-	 * @param {number} startX
-	 * @param {number} endX
-	 * @return {Array<Point>}
+	 * @return {number}
 	 */
-	getRange(startX, endX) {
-		if (!this.points.length || startX === endX) {
+	getMaxX() {
+		return findMax(this.points, (point) => point.x, {
+			sorted: true
+		});
+	}
+
+	/**
+	 * @return {number}
+	 */
+	getMaxY() {
+		return findMax(this.points, (point) => point.y);
+	}
+
+	/**
+	 * @param {number} start
+	 * @param {number} end
+	 * @param {{
+	 *     interpolation: (InterpolationType|undefined)
+	 * }=} opt
+	 * @return {!Array<Point>}
+	 */
+	getRange(start, end, {interpolation = InterpolationType.NONE} = {}) {
+		if (!this.points.length) {
 			return [];
 		}
 
-		let startPointIndex = findIndexByX(startX, this.points, (x, index) => {
+		let startPointIndex;
+		let endPointIndex;
+
+		startPointIndex = findIndex(start, this.points, (x, index) => {
 			const prev = this.points[index - 1];
 
-			return x >= startX && (!prev || prev.x < startX);
+			return x >= start && (!prev || prev.x < start);
 		});
 
 		if (startPointIndex === -1) {
 			startPointIndex = 0;
 		}
 
-		const restPoints = this.points.slice(startPointIndex);
+		const tail = this.points.slice(startPointIndex);
 
-		let endPointIndex = findIndexByX(endX, restPoints, (x, index) => {
-			const next = restPoints[index + 1];
+		endPointIndex = findIndex(end, tail, (x, index) => {
+			const next = tail[index + 1];
 
-			return x <= endX && (!next || next.x > endX);
+			return x <= end && (!next || next.x > end);
 		});
 
 		if (endPointIndex === -1) {
 			const lastPointIndex = this.points.length - 1;
-			if (endX > this.points[lastPointIndex].x) {
+			if (end > this.points[lastPointIndex].x) {
 				endPointIndex = lastPointIndex;
 			} else {
 				endPointIndex = startPointIndex;
@@ -89,26 +112,63 @@ export default class Graph {
 			endPointIndex = startPointIndex + endPointIndex;
 		}
 
-		const rangePoints = this.points.slice(startPointIndex, endPointIndex + 1);
+		const range = this.points.slice(startPointIndex, endPointIndex + 1);
 
-		const startPoint = this.points[startPointIndex];
-		if (startPoint.x !== startX) {
-			const pointBeforeStart = this.points[startPointIndex - 1];
-			if (pointBeforeStart) {
-				rangePoints.unshift(pointBeforeStart.interpolate(startX, startPoint));
+		if (interpolation !== InterpolationType.NONE) {
+			const startPoint = this.points[startPointIndex];
+			const endPoint = this.points[endPointIndex];
+
+			if (startPoint.x !== start) {
+				const pointBeforeStart = this.points[startPointIndex - 1];
+
+				if (pointBeforeStart) {
+					let interpolatedPoint;
+					if (interpolation === InterpolationType.LINEAR) {
+						interpolatedPoint = interpolateLinear(start, pointBeforeStart, startPoint);
+					} else {
+						interpolatedPoint = new Point(start, pointBeforeStart.y, {
+							isInterpolated: true
+						});
+					}
+
+					range.unshift(interpolatedPoint);
+				}
+			}
+
+			if (endPoint.x !== end && !(endPoint === startPoint && startPoint.x > end)) {
+				const pointAfterEnd = this.points[endPointIndex + 1];
+
+				if (pointAfterEnd) {
+					let interpolatedPoint;
+					if (interpolation === InterpolationType.LINEAR) {
+						interpolatedPoint = interpolateLinear(end, endPoint, pointAfterEnd);
+					} else {
+						interpolatedPoint = new Point(end, pointAfterEnd.y, {
+							isInterpolated: true
+						});
+					}
+
+					range.push(interpolatedPoint);
+				}
 			}
 		}
 
-		const endPoint = this.points[endPointIndex];
-		if (endPoint.x !== endX && !(endPoint === startPoint && startPoint.x > endX)) {
-			const pointAfterEnd = this.points[endPointIndex + 1];
-			if (pointAfterEnd) {
-				rangePoints.push(endPoint.interpolate(endX, pointAfterEnd));
-			}
-		}
-
-		return rangePoints;
+		return range;
 	}
+}
+
+/**
+ * @param {number} x
+ * @param {Point} pointA
+ * @param {Point} pointB
+ * @return {Point}
+ */
+function interpolateLinear(x, pointA, pointB) {
+	const y = pointA.y + (x - pointA.x) * ((pointB.y - pointA.y) / (pointB.x - pointA.x));
+
+	return new Point(x, y, {
+		isInterpolated: true
+	});
 }
 
 /**
@@ -117,7 +177,7 @@ export default class Graph {
  * @param {function(number, number): boolean} predicate
  * @return {number}
  */
-function findIndexByX(x, points, predicate) {
+function findIndex(x, points, predicate) {
 	let start = 0;
 	let stop = points.length - 1;
 	let middle = floor((start + stop) / 2);

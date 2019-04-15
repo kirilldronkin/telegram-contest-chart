@@ -1,6 +1,6 @@
-import {noop, createDiv} from '../utils.js';
+import {noop, createDivElement, getEventX, isPassiveEventsSupported} from '../utils.js';
 
-const {max, round} = Math;
+const {max} = Math;
 
 /**
  * @const {number}
@@ -28,7 +28,7 @@ export default class Zoombar {
 		 * @type {function()}
 		 * @private
 		 */
-		this._updateListener = noop;
+		this._rangeChangeListener = noop;
 
 		/**
 		 * @type {HTMLDivElement}
@@ -96,13 +96,15 @@ export default class Zoombar {
 
 	resize() {
 		this._containerSize = this._container.offsetWidth;
+		this._leftGripSize = this._leftGrip.offsetWidth;
+		this._rightGripSize = this._rightGrip.offsetWidth;
 	}
 
 	/**
 	 * @param {function()} listener
 	 */
-	setUpdateListener(listener) {
-		this._updateListener = listener;
+	setRangeChangeListener(listener) {
+		this._rangeChangeListener = listener;
 	}
 
 	/**
@@ -132,21 +134,17 @@ export default class Zoombar {
 		this._container.classList.add('zoombar');
 		this._containerSize = this._container.offsetWidth;
 
-		this._leftGrip = createDiv('zoombar__grip');
-		this._leftOverlay = createDiv('zoombar__overlay');
-		this._pan = createDiv('zoombar__pan');
-		this._rightGrip = createDiv('zoombar__grip');
-		this._rightOverlay = createDiv('zoombar__overlay');
+		this._leftGrip = createDivElement('zoombar__grip _left');
+		this._leftOverlay = createDivElement('zoombar__overlay _left');
+		this._pan = createDivElement('zoombar__pan');
+		this._rightGrip = createDivElement('zoombar__grip _right');
+		this._rightOverlay = createDivElement('zoombar__overlay _right');
 
 		this._container.appendChild(this._leftOverlay);
 		this._container.appendChild(this._leftGrip);
 		this._container.appendChild(this._pan);
 		this._container.appendChild(this._rightGrip);
 		this._container.appendChild(this._rightOverlay);
-
-		// Fixed sizes
-		this._leftGripSize = this._leftGrip.offsetWidth;
-		this._rightGripSize = this._rightGrip.offsetWidth;
 	}
 
 	/**
@@ -203,12 +201,12 @@ export default class Zoombar {
 	 * @private
 	 */
 	_onLeftGripDragged(positionDiff) {
-		const newPanSize = this._panSize - positionDiff;
+		const newPanSize = max(this._panSize - positionDiff, 0);
 		if (newPanSize >= 0) {
-			this._renderLeftOverlaySize(this._leftOverlaySize + positionDiff);
+			this._renderLeftOverlaySize(this._leftOverlaySize - (newPanSize - this._panSize));
 			this._renderPanSize(newPanSize);
 
-			this._updateListener();
+			this._rangeChangeListener();
 		}
 	}
 
@@ -217,12 +215,12 @@ export default class Zoombar {
 	 * @private
 	 */
 	_onRightGripDragged(positionDiff) {
-		const newPanSize = this._panSize + positionDiff;
+		const newPanSize = max(this._panSize + positionDiff, 0);
 		if (newPanSize >= 0) {
-			this._renderRightOverlaySize(this._rightOverlaySize - positionDiff);
+			this._renderRightOverlaySize(this._rightOverlaySize - (newPanSize - this._panSize));
 			this._renderPanSize(newPanSize);
 
-			this._updateListener();
+			this._rangeChangeListener();
 		}
 	}
 
@@ -245,7 +243,7 @@ export default class Zoombar {
 		this._renderLeftOverlaySize(newLeftOverlaySize);
 		this._renderRightOverlaySize(newRightOverlaySize);
 
-		this._updateListener();
+		this._rangeChangeListener();
 	}
 
 	/**
@@ -278,7 +276,7 @@ export default class Zoombar {
 		this._renderLeftOverlaySize(newPanStart);
 		this._renderRightOverlaySize(this._rightOverlaySize + leftOverlayRect.width - newPanStart);
 
-		this._updateListener();
+		this._rangeChangeListener();
 	}
 
 	/**
@@ -297,26 +295,8 @@ export default class Zoombar {
 		this._renderRightOverlaySize(newPanEnd);
 		this._renderLeftOverlaySize(this._leftOverlaySize + rightOverlayRect.width - newPanEnd);
 
-		this._updateListener();
+		this._rangeChangeListener();
 	}
-}
-
-/**
- * @param {MouseEvent|TouchEvent} event
- * @param {HTMLElement} target
- * @return {number}
- */
-function getEventX(event, target) {
-	if (!event.touches) {
-		return event.clientX;
-	}
-
-	const touch = Array.from(event.touches).find((touch) => touch.target === target);
-	if (touch) {
-		return touch.clientX;
-	}
-
-	return NaN;
 }
 
 /**
@@ -333,11 +313,14 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 	let lastPosition;
 	let clicksInactivityTimeoutId;
 
+	const passiveEventsSupported = isPassiveEventsSupported();
+
 	/**
 	 * @param {Event} event
 	 */
 	const onStart = (event) => {
 		event = /** @type {MouseEvent|TouchEvent} */ (event);
+		event.preventDefault();
 
 		const eventX = getEventX(event, element);
 
@@ -347,10 +330,12 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 		lastPosition = eventX - containerRect.left;
 
 		container.addEventListener('mousemove', onMove);
-		container.addEventListener('touchmove', onMove);
 		container.addEventListener('mouseup', onEnd);
 		container.addEventListener('mouseleave', onEnd);
 		container.addEventListener('touchend', onEnd);
+		container.addEventListener('touchmove', onMove, passiveEventsSupported && {
+			passive: false
+		});
 
 		if (clicksInactivityTimeoutId) {
 			clearTimeout(clicksInactivityTimeoutId);
@@ -368,6 +353,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 	 */
 	const onMove = (event) => {
 		event = /** @type {MouseEvent|TouchEvent} */ (event);
+		event.preventDefault();
 
 		const eventX = getEventX(event, element);
 		const newPosition = eventX - containerRect.left;
@@ -375,7 +361,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 		if (newPosition >= offset && newPosition + elementRect.width - offset <= containerRect.width) {
 			const diff = newPosition - lastPosition;
 			if (diff) {
-				onMoved(round(diff));
+				onMoved(diff);
 			}
 
 			lastPosition = newPosition;
@@ -391,9 +377,10 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 
 	const onEnd = () => {
 		container.removeEventListener('mousemove', onMove);
-		container.removeEventListener('touchmove', onMove);
 		container.removeEventListener('mouseup', onEnd);
 		container.removeEventListener('mouseleave', onEnd);
+
+		container.removeEventListener('touchmove', onMove);
 		container.removeEventListener('touchend', onEnd);
 
 		clicksInactivityTimeoutId = setTimeout(() => {
@@ -409,5 +396,7 @@ function listenHorizontalDrag(container, element, onMoved = noop, onStarted  = n
 	};
 
 	element.addEventListener('mousedown', onStart);
-	element.addEventListener('touchstart', onStart);
+	element.addEventListener('touchstart', onStart, passiveEventsSupported && {
+		passive: false
+	});
 }
