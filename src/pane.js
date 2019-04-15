@@ -69,7 +69,7 @@ const commonZoomChartOptions = {
 	},
 	emptyText: {
 		text: 'Nothing to show',
-		size: 13
+		size: 12
 	}
 };
 
