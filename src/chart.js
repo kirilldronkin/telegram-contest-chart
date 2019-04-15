@@ -734,23 +734,32 @@ export default class Chart {
 	}
 
 	/**
-	 * @param {Graph} graph
-	 * @return {ViewType}
+	 * @return {Array<ViewType>}
 	 */
-	getGraphViewType(graph) {
-		if (!this._graphs.includes(graph)) {
-			throw new Error('Unknown graph');
+	getViewTypes() {
+		return this._views.map((view) => {
+			if (view instanceof LineView) {
+				return ViewType.LINE;
+			} else if (view instanceof BarView) {
+				return ViewType.BAR;
+			} else if (view instanceof AreaView) {
+				return ViewType.AREA;
+			}
+		});
+	}
+
+	/**
+	 * @param {number} viewIndex
+	 * @return {Array<Graph>}
+	 */
+	getViewGraphs(viewIndex) {
+		const view = this._views[viewIndex];
+
+		if (!view) {
+			throw new Error(`Unknown view index ${viewIndex}`);
 		}
 
-		const view = this._graphToView.get(graph);
-
-		if (view instanceof LineView) {
-			return ViewType.LINE;
-		} else if (view instanceof BarView) {
-			return ViewType.BAR;
-		} else if (view instanceof AreaView) {
-			return ViewType.AREA;
-		}
+		return this._viewToGraphs.get(view);
 	}
 
 	/**

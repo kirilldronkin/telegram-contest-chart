@@ -10,13 +10,10 @@ import {
 	getEventX,
 	getEventY,
 	isPassiveEventsSupported,
-	formatNumber,
 	formatDay,
 	to12Hours,
 	getShortWeekDayName
 } from './utils.js';
-
-const {round} = Math;
 
 /**
  * @const {number}
@@ -27,6 +24,14 @@ const LABEL_MARGIN = 10;
  * @const {number}
  */
 const LABEL_FILL_BACKPRESSURE_TIME = 100;
+
+/**
+ * @typedef {Array<{
+ *     viewType: ViewType,
+ *     graphsWithPoint: Array<{graph: Graph, point: Point}>
+ * }>}
+ */
+let ToolbarEntries;
 
 export default class Cursor {
 	constructor() {
@@ -91,13 +96,13 @@ export default class Cursor {
 		this._rafId = NaN;
 
 		/**
-		 * @type {function(number, Map<Graph, Point>)}
+		 * @type {function(number, ToolbarEntries)}
 		 * @private
 		 */
 		this._fillToolbarThrottled = throttle(this._fillToolbar.bind(this), LABEL_FILL_BACKPRESSURE_TIME);
 
 		/**
-		 * @type {function(number, Map<Graph, Point>)}
+		 * @type {function(number, ToolbarEntries)}
 		 * @private
 		 */
 		this._fillToolbarDebounced = debounce(this._fillToolbar.bind(this), LABEL_FILL_BACKPRESSURE_TIME);
@@ -177,14 +182,14 @@ export default class Cursor {
 
 	/**
 	 * @param {number} x
-	 * @param {Map<Graph, Point>} graphToHighlightedPoint
+	 * @param {ToolbarEntries} entries
 	 * @param {number} leftOffset
 	 * @param {number} topOffset
 	 * @private
 	 */
-	_showToolbar(x, graphToHighlightedPoint, leftOffset, topOffset) {
-		this._fillToolbarThrottled(x, graphToHighlightedPoint);
-		this._fillToolbarDebounced(x, graphToHighlightedPoint);
+	_showToolbar(x, entries, leftOffset, topOffset) {
+		this._fillToolbarThrottled(x, entries);
+		this._fillToolbarDebounced(x, entries);
 
 		this._toolbarContainer.style.display = 'block';
 
@@ -199,10 +204,10 @@ export default class Cursor {
 
 	/**
 	 * @param {number} x
-	 * @param {Map<Graph, Point>} graphToHighlightedPoint
+	 * @param {ToolbarEntries} entries
 	 * @private
 	 */
-	_fillToolbar(x, graphToHighlightedPoint) {
+	_fillToolbar(x, entries) {
 		let title;
 		if (this._chart.getAxisTicksType(Axis.X) === TicksType.DATE) {
 			const xDate = new Date(x);
@@ -218,16 +223,33 @@ export default class Cursor {
 			title = String(x);
 		}
 
-		const items = Array.from(graphToHighlightedPoint.entries())
-			.sort((entryA, entryB) => entryB[1].y - entryA[1].y)
-			.map(([graph, point]) => ({
-				title: graph.name,
-				color: graph.color,
-				value: formatNumber(round(point.y))
-			}));
+		const columns = [];
+		entries.forEach(({viewType, graphsWithPoint}) => {
+			let ySum;
+			if (viewType === ViewType.BAR || viewType === ViewType.AREA) {
+				ySum = graphsWithPoint.reduce((acc, {point}) => acc + point.y, 0);
+			}
+
+			graphsWithPoint.forEach(({graph, point}) => {
+				columns.push({
+					name: graph.name,
+					color: graph.color,
+					value: point.y,
+					percentage: viewType === ViewType.AREA ? point.y / ySum * 100 : undefined
+				});
+			});
+
+			if (viewType === ViewType.BAR && graphsWithPoint.length > 1) {
+				columns.push({
+					name: 'All',
+					color: '#fff',
+					value: ySum
+				});
+			}
+		});
 
 		this._toolbar.setTitle(title);
-		this._toolbar.setItems(items);
+		this._toolbar.setColumns(columns);
 	}
 
 	/**
@@ -280,44 +302,50 @@ export default class Cursor {
 			return;
 		}
 
-		this._chart.highlight(canvasX);
-
-		const graphs = this._chart.getGraphs();
-		const graphToHighlightedPoint = new Map();
-
-		graphs.forEach((graph) => {
-			const highlightedPoint = this._chart.getGraphHighlightedPoint(graph);
-			if (highlightedPoint) {
-				graphToHighlightedPoint.set(graph, highlightedPoint);
-			}
-		});
-
-		if (!graphToHighlightedPoint.size) {
-			return;
-		}
+		const viewTypes = this._chart.getViewTypes();
 
 		const rulerXs = [];
+		const toolbarEntries = [];
 
-		Array.from(graphToHighlightedPoint.entries())
-			.forEach(([graph, point]) => {
-				const viewType = this._chart.getGraphViewType(graph);
-				const isRulerNeeded = viewType === ViewType.LINE || viewType === ViewType.AREA;
+		viewTypes.forEach((viewType, index) => {
+			const graphs = this._chart.getViewGraphs(index);
+			const graphsWithHighlightedPoint = [];
 
-				if (isRulerNeeded && !rulerXs.includes(point.x)) {
-					rulerXs.push(point.x);
+			graphs.forEach((graph) => {
+				const highlightedPoint = this._chart.getGraphHighlightedPoint(graph);
+				if (highlightedPoint) {
+					graphsWithHighlightedPoint.push({graph, point: highlightedPoint});
 				}
 			});
+
+			const isRulerNeeded = viewType === ViewType.LINE || viewType === ViewType.AREA;
+			if (isRulerNeeded) {
+				graphsWithHighlightedPoint.forEach(({graph, point}) => {
+					if (!rulerXs.includes(point.x)) {
+						rulerXs.push(point.x);
+					}
+				});
+			}
+
+			toolbarEntries.push({
+				viewType,
+				graphsWithPoint: graphsWithHighlightedPoint
+			});
+		});
 
 		this._chart.removeRulers();
 		rulerXs.forEach((x) => {
 			this._chart.addRuler(x);
 		});
 
-		const x = this._chart.getXByPixels(canvasX);
+		this._chart.highlight(canvasX);
 
 		this._rafId = requestAnimationFrame(() => {
 			this._drawChart();
-			this._showToolbar(x, graphToHighlightedPoint, canvasX, canvasY);
+
+			if (toolbarEntries.length) {
+				this._showToolbar(this._chart.getXByPixels(canvasX), toolbarEntries, canvasX, canvasY);
+			}
 		});
 
 		this._lastMoveX = canvasX;

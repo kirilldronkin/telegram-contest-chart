@@ -1,4 +1,6 @@
-import {createDivElement} from '../utils.js';
+import {createDivElement, formatNumber} from '../utils.js';
+
+const {round} = Math;
 
 export default class Toolbar {
 	/**
@@ -21,7 +23,7 @@ export default class Toolbar {
 		 * @type {HTMLDivElement}
 		 * @private
 		 */
-		this._itemsContainer;
+		this._rowsContainer;
 
 		this._setupDOM();
 	}
@@ -35,31 +37,44 @@ export default class Toolbar {
 
 	/**
 	 * @param {Array<{
-	 *   title: string,
-	 *   value: string,
-	 *   color: string
-	 * }>} items
+	 *   name: string,
+	 *   color: string,
+	 *   value: number,
+	 *   percentage: (number|undefined)
+	 * }>} columns
 	 */
-	setItems(items) {
-		while (this._itemsContainer.lastChild) {
-			this._itemsContainer.removeChild(this._itemsContainer.lastChild);
+	setColumns(columns) {
+		while (this._rowsContainer.lastChild) {
+			this._rowsContainer.removeChild(this._rowsContainer.lastChild);
 		}
 
 		const fragment = document.createDocumentFragment();
 
-		items.forEach(({title, value, color}) => {
-			const itemElement = createDivElement('toolbar__item');
-			const titleElement = createDivElement('toolbar__item-title', title);
-			const valueElement = createDivElement('toolbar__item-value', value);
+		columns.forEach(({name, value, color, percentage}) => {
+			const rowElement = createDivElement('toolbar__row');
+			const nameElement = createDivElement('toolbar__column-name', name);
+			const valueElement = createDivElement('toolbar__column-value', formatNumber(round(value)));
+
+			let percentageElement;
+			if (typeof percentage !== 'undefined') {
+				const percents = `${String(Number(percentage.toFixed(1)))}%`;
+
+				percentageElement = createDivElement('toolbar__column-percentage', percents);
+			}
 
 			valueElement.style.color = color;
-			itemElement.appendChild(titleElement);
-			itemElement.appendChild(valueElement);
 
-			fragment.appendChild(itemElement);
+			if (percentageElement) {
+				rowElement.appendChild(percentageElement);
+			}
+
+			rowElement.appendChild(nameElement);
+			rowElement.appendChild(valueElement);
+
+			fragment.appendChild(rowElement);
 		});
 
-		this._itemsContainer.appendChild(fragment);
+		this._rowsContainer.appendChild(fragment);
 	}
 
 	/**
@@ -69,9 +84,9 @@ export default class Toolbar {
 		this._container.classList.add('toolbar');
 
 		this._titleElement = createDivElement('toolbar__title');
-		this._itemsContainer = createDivElement('toolbar__items');
+		this._rowsContainer = createDivElement('toolbar__rows');
 
 		this._container.appendChild(this._titleElement);
-		this._container.appendChild(this._itemsContainer);
+		this._container.appendChild(this._rowsContainer);
 	}
 }
