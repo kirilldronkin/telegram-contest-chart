@@ -1,6 +1,6 @@
 # Telegram Contest Chart Application
 
-The application was made for the 2019 March Coding Competition by [Telegram](https://telegram.org/).
+The application was made for the 2019 March - April Coding Competition by [Telegram](https://telegram.org/).
 The goal was to develop a software for showing simple charts based on the provided input.
 
 See the [demo](http://dronkin.ru/telegram-contest-chart/).
@@ -15,11 +15,19 @@ Also the source code is annotated for [Closure Compiler](https://developers.goog
 
 ## Features
 
+* Line, Bar and Area chart types;
+* Dual Y axis;
+* Flexible layout;
 * Zooming and panning;
 * Nice ticks formatting;
 * Day and night themes;
 * Legend and cursor;
 * Touch devices support;
+* Retina displays support;
 * Smooth transition for datasets changing and Y axis scaling;
-* Special layout for mobile devices - chart height and ticks count are reduced;
 * Responsive - every chart on the page will be redrawn on resize or orientation change;
+
+## Development
+
+`npm run dev` - starts the development server  
+`npm run build` - builds a bundle
