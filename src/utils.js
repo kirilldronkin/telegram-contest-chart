@@ -301,6 +301,15 @@ function compactNumber(value) {
 }
 
 /**
+ * @param {number} value
+ * @return {string}
+ */
+function formatNumber(value) {
+	return value.toString()
+		.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+}
+
+/**
  * @param {number} index
  * @return {string}
  */
@@ -410,6 +419,7 @@ export {
 	easeOutQuart,
 	niceNumber,
 	compactNumber,
+	formatNumber,
 	getShortMonthName,
 	getShortWeekDayName,
 	to12Hours,

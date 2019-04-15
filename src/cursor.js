@@ -10,10 +10,13 @@ import {
 	getEventX,
 	getEventY,
 	isPassiveEventsSupported,
+	formatNumber,
 	formatDay,
 	to12Hours,
 	getShortWeekDayName
 } from './utils.js';
+
+const {round} = Math;
 
 /**
  * @const {number}
@@ -220,7 +223,7 @@ export default class Cursor {
 			.map(([graph, point]) => ({
 				title: graph.name,
 				color: graph.color,
-				value: String(point.y)
+				value: formatNumber(round(point.y))
 			}));
 
 		this._toolbar.setTitle(title);
