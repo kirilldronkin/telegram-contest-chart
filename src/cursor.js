@@ -316,9 +316,16 @@ export default class Cursor {
 			graphs.forEach((graph) => {
 				const highlightedPoint = this._chart.getGraphHighlightedPoint(graph);
 				if (highlightedPoint) {
-					graphsWithHighlightedPoint.push({graph, point: highlightedPoint});
+					graphsWithHighlightedPoint.push({
+						graph,
+						point: highlightedPoint
+					});
 				}
 			});
+
+			if (!graphsWithHighlightedPoint.length) {
+				return;
+			}
 
 			const isRulerNeeded = viewType === ViewType.LINE || viewType === ViewType.AREA;
 			if (isRulerNeeded) {
@@ -345,6 +352,8 @@ export default class Cursor {
 
 			if (toolbarEntries.length) {
 				this._showToolbar(this._chart.getXByPixels(canvasX), toolbarEntries, canvasX, canvasY);
+			} else {
+				this._hideToolbar();
 			}
 		});
 
