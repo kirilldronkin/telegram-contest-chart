@@ -30,4 +30,5 @@ Also the source code is annotated for [Closure Compiler](https://developers.goog
 ## Development
 
 `npm run dev` - starts the development server;  
-`npm run build` - builds a bundle;
+`npm run build` - builds a bundle;  
+`npm run lint` - lint the code;
