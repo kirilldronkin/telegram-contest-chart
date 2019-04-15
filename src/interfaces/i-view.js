@@ -77,4 +77,13 @@ export default class IView {
 	 * @param {DrawHelpers} helpers
 	 */
 	draw(context, xScale, yScale, graphs, helpers) {}
+
+	/**
+	 * @param {CanvasRenderingContext2D} context
+	 * @param {IScale} xScale
+	 * @param {IScale} yScale
+	 * @param {Array<Graph>} graphs
+	 * @param {DrawHelpers} helpers
+	 */
+	drawOverlays(context, xScale, yScale, graphs, helpers) {}
 }

@@ -92,7 +92,7 @@ let ViewsOptions;
  *     left: number
  * }}
  */
-let PaddingOptions;
+let Padding;
 
 /**
  * @typedef {{
@@ -102,7 +102,7 @@ let PaddingOptions;
  *     left: (number|undefined)
  * }}
  */
-let PaddingOptionsPartial;
+let PaddingPartial;
 
 /**
  * @typedef {{
@@ -196,7 +196,8 @@ let EmptyTextOptionsPartial;
  * @typedef {{
  *     views: (Array<ViewEntry>|undefined),
  *     viewsOptions: (ViewsOptions|undefined),
- *     padding: (PaddingOptionsPartial|undefined),
+ *     viewsPadding: (PaddingPartial|undefined),
+ *     viewportPadding: (PaddingPartial|undefined),
  *     xTicks: (XTicksOptionsPartial|undefined),
  *     yTicks: (YTicksOptionsPartial|undefined),
  *     ySecondary: (Array<number>|undefined),
@@ -217,9 +218,9 @@ const defaultViewsOptions = {
 };
 
 /**
- * @type {PaddingOptions}
+ * @type {Padding}
  */
-const defaultPaddingOptions = {
+const defaultPadding = {
 	top: 0,
 	right: 0,
 	bottom: 0,
@@ -280,9 +281,13 @@ export default class Chart {
 		const viewsOptions = /** @type {ViewsOptions} */ (
 			merge(defaultViewsOptions, options.viewsOptions || {})
 		);
-		const paddingOptions = /** @type {PaddingOptions} */ (
-			merge(defaultPaddingOptions, options.padding || {})
+		const viewsPadding = /** @type {Padding} */ (
+			merge(defaultPadding, options.viewsPadding || {})
 		);
+		const viewportPadding = /** @type {Padding} */ (
+			merge(defaultPadding, options.viewportPadding || {})
+		);
+
 		const xTicksOptions = /** @type {XTicksOptions} */ (
 			merge(defaultXTicksOptions, options.xTicks || {})
 		);
@@ -380,6 +385,18 @@ export default class Chart {
 		this._viewDrawHelpers = this._createViewDrawHelpers();
 
 		/**
+		 * @type {Padding}
+		 * @private
+		 */
+		this._viewsPadding = viewsPadding;
+
+		/**
+		 * @type {Padding}
+		 * @private
+		 */
+		this._viewportPadding = viewportPadding;
+
+		/**
 		 * @type {Array<Graph>}
 		 * @private
 		 */
@@ -474,12 +491,6 @@ export default class Chart {
 		 * @private
 		 */
 		this._ySecondaryTickToVisibility = new Map();
-
-		/**
-		 * @type {PaddingOptions}
-		 * @private
-		 */
-		this._paddingOptions = paddingOptions;
 
 		/**
 		 * @type {LineOptions}
@@ -973,7 +984,7 @@ export default class Chart {
 	 * @private
 	 */
 	_draw() {
-		this._context.clearRect(0, 0, this._width, this._height);
+		this._clearCanvas();
 
 		if (this._xScale.isEmpty() || this._xScale.isRangeEmpty()) {
 			this._drawEmptyText();
@@ -986,6 +997,37 @@ export default class Chart {
 		this._drawRulers();
 		this._drawXTicks();
 		this._drawYTicks();
+
+		if (Object.values(this._viewportPadding).some((value) => value !== 0)) {
+			this._cropViewport();
+		}
+
+		this._drawOverlays();
+	}
+
+	/**
+	 * @private
+	 */
+	_clearCanvas() {
+		this._context.clearRect(0, 0, this._width, this._height);
+
+	}
+
+	/**
+	 * @private
+	 */
+	_cropViewport() {
+		this._context.save();
+
+		this._context.globalCompositeOperation = 'destination-in';
+		this._context.fillRect(
+			this._viewportPadding.left,
+			this._viewportPadding.top,
+			this._width - this._viewportPadding.left - this._viewportPadding.right,
+			this._height - this._viewportPadding.top - this._viewportPadding.bottom
+		);
+
+		this._context.restore();
 	}
 
 	/**
@@ -993,18 +1035,30 @@ export default class Chart {
 	 */
 	_drawViews() {
 		this._views.forEach((view) => {
-			const xScale = this._xScale;
 			const yScale = this._viewToYScale.get(view);
 			const graphs = this._viewToGraphs.get(view);
 
 			this._context.save();
 
-			this._context.translate(
-				xScale.getPixelsPerValue() * xScale.getFitStart() * -1,
-				yScale.getPixelsPerValue() * yScale.getFitStart()
-			);
+			translateXYScales(this._context, this._xScale, yScale);
+			view.draw(this._context, this._xScale, yScale, graphs, this._viewDrawHelpers);
 
-			view.draw(this._context, xScale, yScale, graphs, this._viewDrawHelpers);
+			this._context.restore();
+		});
+	}
+
+	/**
+	 * @private
+	 */
+	_drawOverlays() {
+		this._views.forEach((view) => {
+			const yScale = this._viewToYScale.get(view);
+			const graphs = this._viewToGraphs.get(view);
+
+			this._context.save();
+
+			translateXYScales(this._context, this._xScale, yScale);
+			view.drawOverlays(this._context, this._xScale, yScale, graphs, this._viewDrawHelpers);
 
 			this._context.restore();
 		});
@@ -1031,8 +1085,8 @@ export default class Chart {
 			const xPixels = this._xScale.getPixelsByValue(x);
 
 			this._context.beginPath();
-			this._context.moveTo(xPixels, this._paddingOptions.top);
-			this._context.lineTo(xPixels, this._height - this._paddingOptions.bottom);
+			this._context.moveTo(xPixels, this._viewportPadding.top + this._viewsPadding.top);
+			this._context.lineTo(xPixels, this._height - (this._viewportPadding.bottom + this._viewsPadding.bottom));
 			this._context.stroke();
 		});
 
@@ -1066,8 +1120,8 @@ export default class Chart {
 				this._context.strokeStyle = hexToRGB(this._gridOptions.color, alpha);
 
 				this._context.beginPath();
-				this._context.moveTo(0, yPixels);
-				this._context.lineTo(this._width, yPixels);
+				this._context.moveTo(this._viewportPadding.left, yPixels);
+				this._context.lineTo(this._width - this._viewportPadding.right, yPixels);
 				this._context.stroke();
 			});
 		} else if (this._ySecondaryScale) {
@@ -1082,8 +1136,8 @@ export default class Chart {
 				this._context.strokeStyle = hexToRGB(this._gridOptions.color, alpha);
 
 				this._context.beginPath();
-				this._context.moveTo(0, yPixels);
-				this._context.lineTo(this._width, yPixels);
+				this._context.moveTo(this._viewportPadding.left, yPixels);
+				this._context.lineTo(this._width - this._viewportPadding.right, yPixels);
 				this._context.stroke();
 			});
 		}
@@ -1101,7 +1155,8 @@ export default class Chart {
 			return;
 		}
 
-		const maxTextWidth = this._xScale.getDimension() / (this._xScale.getTicksCount() * 2);
+		const widthWithPadding = this._width - this._viewportPadding.left - this._viewportPadding.right;
+		const maxTextWidth = widthWithPadding / (this._xScale.getTicksCount() * 2);
 
 		this._context.save();
 
@@ -1118,7 +1173,7 @@ export default class Chart {
 
 		this._xTicks.forEach((tick) => {
 			const xPixels = this._xScale.getPixelsByValue(tick);
-			const yPixels = this._height - (this._xTicksOptions.size / 2);
+			const yPixels = this._height - this._viewportPadding.bottom - (this._xTicksOptions.size / 2);
 
 			const text = this._formatTick(tick, Axis.X);
 			const alpha = this._getTickAlpha(tick, Axis.X);
@@ -1158,7 +1213,7 @@ export default class Chart {
 				const alpha = this._getTickAlpha(tick, Axis.Y);
 
 				this._context.fillStyle = hexToRGB(this._yTicksOptions.color, alpha);
-				this._context.fillText(text, 0, yPixels);
+				this._context.fillText(text, this._viewportPadding.left, yPixels);
 			});
 
 			this._context.restore();
@@ -1180,7 +1235,7 @@ export default class Chart {
 				const alpha = this._getTickAlpha(tick, Axis.Y_SECONDARY);
 
 				this._context.fillStyle = hexToRGB(this._ySecondaryTicksOptions.color, alpha);
-				this._context.fillText(text, this._width, yPixels);
+				this._context.fillText(text, this._width - this._viewportPadding.right, yPixels);
 			});
 
 			this._context.restore();
@@ -1208,14 +1263,14 @@ export default class Chart {
 	_initScales() {
 		this._xScale.setTicksCount(this._xTicksOptions.count);
 		this._xScale.setPadding([
-			this._paddingOptions.left,
-			this._paddingOptions.right
+			this._viewportPadding.left + this._viewsPadding.left,
+			this._viewportPadding.right + this._viewsPadding.right
 		]);
 
 		this._yScale.setTicksCount(this._yTicksOptions.count);
 		this._yScale.setPadding([
-			this._paddingOptions.top,
-			this._paddingOptions.bottom
+			this._viewportPadding.top + this._viewsPadding.top,
+			this._viewportPadding.bottom + this._viewsPadding.bottom
 		]);
 
 		this._yScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
@@ -1228,8 +1283,8 @@ export default class Chart {
 		if (this._ySecondaryScale) {
 			this._ySecondaryScale.setTicksCount(this._ySecondaryTicksOptions.count);
 			this._ySecondaryScale.setPadding([
-				this._paddingOptions.top,
-				this._paddingOptions.bottom
+				this._viewportPadding.top + this._viewsPadding.top,
+				this._viewportPadding.bottom + this._viewsPadding.bottom
 			]);
 
 			this._ySecondaryScale.setTransitionDuration(Y_AXIS_SCALE_DURATION);
@@ -1928,6 +1983,18 @@ function translateXScale(context, scale) {
  */
 function translateYScale(context, scale) {
 	context.translate(0, scale.getPixelsPerValue() * scale.getFitStart());
+}
+
+/**
+ * @param {CanvasRenderingContext2D} context
+ * @param {IScale} xScale
+ * @param {IScale} yScale
+ */
+function translateXYScales(context, xScale, yScale) {
+	context.translate(
+		xScale.getPixelsPerValue() * xScale.getFitStart() * -1,
+		yScale.getPixelsPerValue() * yScale.getFitStart()
+	);
 }
 
 /**

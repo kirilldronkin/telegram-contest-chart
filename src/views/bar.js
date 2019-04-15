@@ -179,4 +179,9 @@ export default class Bar {
 			});
 		});
 	}
+
+	/**
+	 * @override
+	 */
+	drawOverlays() {}
 }

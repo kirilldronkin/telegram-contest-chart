@@ -148,7 +148,7 @@ export default class Line {
 	/**
 	 * @override
 	 */
-	draw(context, xScale, yScale, graphs, {getGraphRange, getGraphVisibility, getGraphHighlightedPoint}) {
+	draw(context, xScale, yScale, graphs, {getGraphRange, getGraphVisibility}) {
 		context.lineCap = 'round';
 		context.lineJoin = 'round';
 		context.lineWidth = this._thickness;
@@ -173,6 +173,13 @@ export default class Line {
 
 			context.stroke();
 		});
+	}
+
+	/**
+	 * @override
+	 */
+	drawOverlays(context, xScale, yScale, graphs, {getGraphVisibility, getGraphHighlightedPoint}) {
+		context.lineWidth = this._thickness;
 
 		graphs.forEach((graph) => {
 			const visibility = getGraphVisibility(graph);

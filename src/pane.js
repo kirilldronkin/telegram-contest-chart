@@ -38,9 +38,13 @@ const commonZoomChartOptions = {
 			highlightDimmingAlpha: 0.5
 		}
 	},
-	padding: {
+	viewsPadding: {
 		top: 15,
 		bottom: 25
+	},
+	viewportPadding: {
+		left: 8,
+		right: 8
 	},
 	xTicks: {
 		type: TicksType.DATE,
@@ -72,7 +76,7 @@ const commonZoomChartOptions = {
  * @type {ChartOptions}
  */
 const commonOverviewChartOptions = {
-	padding: {
+	viewsPadding: {
 		top: 2,
 		bottom: 2,
 		left: 10,

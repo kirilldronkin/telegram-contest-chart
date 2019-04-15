@@ -132,4 +132,9 @@ export default class Bar {
 			context.fill();
 		});
 	}
+
+	/**
+	 * @override
+	 */
+	drawOverlays() {}
 }
