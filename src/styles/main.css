@@ -277,27 +277,38 @@ body._loading::after {
 	margin-bottom: 8px;
 }
 
-.toolbar__row {
+.toolbar__column {
+	display: inline-block;
+	vertical-align: top;
 	font-size: 12px;
+}
+
+.toolbar__cell {
 	margin-bottom: 8px;
 }
 
-.toolbar__row:last-child {
+.toolbar__cell:last-child {
 	margin-bottom: 0;
 }
 
-.toolbar__column-percentage {
-	float: left;
-	font-weight: bold;
-	margin-right: 5px;
+.toolbar__column._percentage {
+	margin-right: 8px;
 }
 
-.toolbar__column-name {
-	float: left;
+.toolbar__column._percentage .toolbar__cell {
+	font-weight: bold;
+	text-align: right;
+}
+
+.toolbar__column._name {
 	margin-right: 30px;
 }
 
-.toolbar__column-value {
+.toolbar__column._name .toolbar__cell {
+	text-align: left;
+}
+
+.toolbar__column._value .toolbar__cell {
 	font-weight: bold;
 	text-align: right;
 	overflow: hidden;

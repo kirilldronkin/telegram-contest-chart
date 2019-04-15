@@ -307,6 +307,8 @@ export default class Cursor {
 		const rulerXs = [];
 		const toolbarEntries = [];
 
+		this._chart.highlight(canvasX);
+
 		viewTypes.forEach((viewType, index) => {
 			const graphs = this._chart.getViewGraphs(index);
 			const graphsWithHighlightedPoint = [];
@@ -337,8 +339,6 @@ export default class Cursor {
 		rulerXs.forEach((x) => {
 			this._chart.addRuler(x);
 		});
-
-		this._chart.highlight(canvasX);
 
 		this._rafId = requestAnimationFrame(() => {
 			this._drawChart();
