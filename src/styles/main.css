@@ -9,6 +9,37 @@ body._scrolling {
 	pointer-events: none;
 }
 
+body._loading::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 1;
+}
+
+body._loading::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin-top: -25px;
+	margin-left: -25px;
+	width: 50px;
+	height: 50px;
+	border: 3px solid;
+	border-radius: 50%;
+	border-top-color: #22a8ee;
+	animation: spin 1s ease-in-out infinite;
+	z-index: 2;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 #panes {
 	width: 100%;
 	max-width: 980px;
@@ -32,8 +63,8 @@ body._scrolling {
 	flex-direction: column;
 	width: 100%;
 	max-width: 480px;
-	padding: 10px;
 	box-sizing: border-box;
+	padding-top: 10px;
 	font-size: 0;
 	margin-bottom: 30px;
 }
@@ -46,6 +77,8 @@ body._scrolling {
 	height: 16px;
 	line-height: 1;
 	margin-bottom: 25px;
+	margin-left: 10px;
+	margin-right: 10px;
 }
 
 .pane__title {
@@ -71,8 +104,13 @@ body._scrolling {
 	position: relative;
 	height: 50px;
 	margin-bottom: 20px;
-	margin-left: 8px;
-	margin-right: 8px;
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+.pane__legend {
+	margin-left: 10px;
+	margin-right: 10px;
 }
 
 .pane__legend .checkbox {
@@ -121,10 +159,10 @@ body._scrolling {
 }
 
 .zoombar__grip::before {
+	content: '';
 	position: absolute;
 	width: 10px;
 	height: 100%;
-	content: '';
 }
 
 .zoombar__grip._left::before {
@@ -136,12 +174,12 @@ body._scrolling {
 }
 
 .zoombar__grip::after {
+	content: '';
 	position: absolute;
 	width: 2px;
 	height: 10px;
 	top: 50%;
 	left: 4px;
-	content: '';
 	background: #fff;
 	border-radius: 2px;
 	margin-top: -5px;

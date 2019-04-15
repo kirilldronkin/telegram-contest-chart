@@ -38,8 +38,6 @@ window.addEventListener('scroll', () => {
 }, false);
 
 themeSwitchButton.addEventListener('click', toggleTheme);
-
-document.body.classList.add(`_${currentTheme}`);
 themeSwitchButton.textContent = {
 	[Theme.DAY]: 'Switch to Night Mode',
 	[Theme.NIGHT]: 'Switch to Day Mode'
@@ -103,6 +101,8 @@ async function onLoad() {
 
 		setTimeout(() => pane.drawCharts(), datasetIndex * PANE_DRAW_CHARTS_DELAY);
 	});
+
+	document.body.classList.remove(`_loading`);
 }
 
 function toggleTheme() {

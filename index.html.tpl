@@ -10,7 +10,11 @@
 
 		%STYLES%
 	</head>
-	<body>
+	<body class=_loading>
+		<script type="text/javascript">
+			document.body.classList.add('_' +  window.localStorage.getItem('telegram-contest-chart_theme') || 'day');
+		</script>
+
 		<div id="panes"></div>
 		<div id="theme-switch-button"></div>
 

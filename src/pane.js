@@ -43,8 +43,8 @@ const commonZoomChartOptions = {
 		bottom: 25
 	},
 	viewportPadding: {
-		left: 8,
-		right: 8
+		left: 10,
+		right: 10
 	},
 	xTicks: {
 		type: TicksType.DATE,

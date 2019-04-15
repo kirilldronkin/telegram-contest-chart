@@ -4,6 +4,16 @@ body._day {
 	background: #fff;
 }
 
+body._day._loading::before {
+	background: #fff;
+}
+
+body._day._loading::after {
+	border-bottom-color: #c0d1e1;
+	border-left-color: #c0d1e1;
+	border-right-color: #c0d1e1;
+}
+
 body._day .pane__title,
 body._day .pane__range,
 body._day #repo-link {
@@ -32,6 +42,16 @@ body._day .toolbar {
 
 body._night {
 	background: #242f3e;
+}
+
+body._night._loading::before {
+	background: #242f3e;
+}
+
+body._night._loading::after {
+	border-bottom-color: #56626d;
+	border-left-color: #56626d;
+	border-right-color: #56626d;
 }
 
 body._night .pane__title,
