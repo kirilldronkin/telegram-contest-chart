@@ -1163,9 +1163,9 @@ export default class Chart {
 		setFont(this._context, this._xTicksOptions.font, this._xTicksOptions.size);
 		translateXScale(this._context, this._xScale);
 
-		if (this._xScale.isStartReached()) {
+		if (this._xTicks[0] === this._xScale.getStart()) {
 			this._context.textAlign = 'start';
-		} else if (this._xScale.isEndReached()) {
+		} else if (this._xTicks[this._xTicks.length - 1] === this._xScale.getEnd()) {
 			this._context.textAlign = 'end';
 		} else {
 			this._context.textAlign = 'center';
@@ -1418,8 +1418,13 @@ export default class Chart {
 		this._xTicks.length = 0;
 		this._xTicks.push(ticksOffset + scaleFitStart);
 
-		while (this._xTicks[this._xTicks.length - 1] < (ticksOffset + scaleFitEnd)) {
-			this._xTicks.push(ticksOffset + scaleFitStart + (this._xTicks.length * ticksSpacing));
+		while (this._xTicks[this._xTicks.length - 1] < scaleFitEnd) {
+			const tick = ticksOffset + scaleFitStart + (this._xTicks.length * ticksSpacing);
+			if (tick > scaleFitEnd) {
+				break;
+			}
+
+			this._xTicks.push(tick);
 		}
 
 		this._xTickToVisibility.clear();

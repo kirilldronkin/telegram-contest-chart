@@ -144,16 +144,6 @@ export default class IScale {
 	 */
 	isRangeEmpty() {}
 
-	/**
-	 * @return {boolean}
-	 */
-	isStartReached() {}
-
-	/**
-	 * @return {boolean}
-	 */
-	isEndReached() {}
-
 	fit() {}
 
 	clear() {}

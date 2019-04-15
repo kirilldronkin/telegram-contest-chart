@@ -44,7 +44,12 @@ export default class XLinear extends Linear {
 			} else if (ticksCount > this._ticksCount) {
 				spacing *= 2;
 			} else if (ticksCount < this._ticksCount - 2) {
-				spacing /= 2;
+				const newSpacing = spacing / 2;
+				const newTicksCount = (end - start) / newSpacing;
+
+				if (newTicksCount <= this._ticksCount) {
+					spacing = newSpacing;
+				}
 			}
 		}
 

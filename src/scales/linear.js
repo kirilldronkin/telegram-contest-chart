@@ -325,20 +325,6 @@ export default class Linear {
 	/**
 	 * @override
 	 */
-	isStartReached() {
-		return this._fitStart === this._start;
-	}
-
-	/**
-	 * @override
-	 */
-	isEndReached() {
-		return this._fitEnd === this._end;
-	}
-
-	/**
-	 * @override
-	 */
 	fit() {
 		throw new NotImplementedError();
 	}
