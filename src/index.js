@@ -72,15 +72,15 @@ async function onLoad() {
 
 		let /** @type {string} */ title;
 		if (datasetIndex === 0) {
-			title = 'Followers';
+			title = '#1 (Line)';
 		} else if (datasetIndex === 1) {
-			title = 'Interactions';
+			title = '#2 (Double Y Axis Line)';
 		} else if (datasetIndex === 2) {
-			title = 'Messages';
+			title = '#3 (Stacked Bar)';
 		} else if (datasetIndex === 3) {
-			title = 'Apps';
+			title = '#4 (Bar)';
 		} else if (datasetIndex === 4) {
-			title = 'Onlines';
+			title = '#5 (Stacked Area)';
 		}
 
 		let /** @type {PaneLayoutType} */ layout;
