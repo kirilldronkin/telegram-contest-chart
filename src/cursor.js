@@ -329,7 +329,7 @@ export default class Cursor {
 
 			const isRulerNeeded = viewType === ViewType.LINE || viewType === ViewType.AREA;
 			if (isRulerNeeded) {
-				graphsWithHighlightedPoint.forEach(({graph, point}) => {
+				graphsWithHighlightedPoint.forEach(({point}) => {
 					if (!rulerXs.includes(point.x)) {
 						rulerXs.push(point.x);
 					}

@@ -1,5 +1,5 @@
-import Graph from './graph.js';
 import Theme from './theme.js';
+import Graph from './graph.js';
 import Chart, {Axis, ViewType, TicksType, Options as ChartOptions} from './chart.js';
 import Cursor from './cursor.js';
 import Zoombar from './ui/zoombar.js';
@@ -496,7 +496,7 @@ export default class Pane {
 			checkbox.setCheckedStateChangeListener(() => {
 				this._toggleGraphs({
 					show: checkbox.isChecked() ? [graph] : [],
-					hide: checkbox.isChecked() ? [] : [graph],
+					hide: checkbox.isChecked() ? [] : [graph]
 				});
 			});
 
