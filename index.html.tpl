@@ -18,6 +18,10 @@
 		<div id="panes"></div>
 		<div id="theme-switch-button"></div>
 
+		<a id="repo-link" href="https://github.com/kirilldronkin/telegram-contest-chart" target="_blank">
+			View on GitHub
+		</a>
+
 		%SCRIPTS%
 	</body>
 </html>
