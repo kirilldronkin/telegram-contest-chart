@@ -7,11 +7,6 @@ import Checkbox from './ui/checkbox.js';
 import {createDivElement, merge, throttle, debounce, formatDay, getShortWeekDayName} from './utils.js';
 
 /**
- * @const {string}
- */
-const MOBILE_MEDIA_QUERY = 'only screen and (max-width: 480px) and (orientation: portrait)';
-
-/**
  * @const {number}
  */
 const RANGE_RENDER_BACKPRESSURE_TIME = 100;
@@ -32,6 +27,7 @@ export const LayoutType = {
 const commonZoomChartOptions = {
 	viewsOptions: {
 		line: {
+			thickness: 2,
 			highlightRadius: 5
 		},
 		bar: {
@@ -48,6 +44,7 @@ const commonZoomChartOptions = {
 	},
 	xTicks: {
 		type: TicksType.DATE,
+		count: 6,
 		size: 11
 	},
 	yTicks: {
@@ -76,6 +73,11 @@ const commonZoomChartOptions = {
  * @type {ChartOptions}
  */
 const commonOverviewChartOptions = {
+	viewsOptions: {
+		line: {
+			thickness: 1
+		}
+	},
 	viewsPadding: {
 		top: 2,
 		bottom: 2,
@@ -115,14 +117,14 @@ export default class Pane {
 
 		const zoombarContainer = createDivElement();
 
-		if (layoutType === LayoutType.LINE) {
+		if (layoutType === LayoutType.LINE || layoutType === LayoutType.LINE_DOUBLE) {
 			zoomChartOptions.views = [{type: ViewType.LINE}];
 			overviewChartOptions.views = [{type: ViewType.LINE}];
-		}
 
-		if (layoutType === LayoutType.LINE_DOUBLE) {
-			zoomChartOptions.views = [{type: ViewType.LINE}, {type: ViewType.LINE, ySecondary: true}];
-			overviewChartOptions.views = [{type: ViewType.LINE}, {type: ViewType.LINE, ySecondary: true}];
+			if (layoutType === LayoutType.LINE_DOUBLE) {
+				zoomChartOptions.views.push({type: ViewType.LINE, ySecondary: true});
+				overviewChartOptions.views.push({type: ViewType.LINE, ySecondary: true});
+			}
 		}
 
 		if (layoutType === LayoutType.BAR) {
@@ -152,12 +154,6 @@ export default class Pane {
 		 * @private
 		 */
 		this._container = createDivElement('pane');
-
-		/**
-		 * @type {MediaQueryList}
-		 * @private
-		 */
-		this._mobileMedia = window.matchMedia(MOBILE_MEDIA_QUERY);
 
 		/**
 		 * @type {Chart}
@@ -283,7 +279,6 @@ export default class Pane {
 		this._zoombar.setRange(rangeStartPixels, rangeEndPixels);
 
 		this._adjustColors(theme);
-		this._adjustForMobile();
 
 		this._renderLegend();
 		this._renderZoomRange();
@@ -336,25 +331,6 @@ export default class Pane {
 		this._zoomChart.draw();
 
 		this._renderZoomRange();
-	}
-
-	/**
-	 * @private
-	 */
-	_adjustForMobile() {
-		this._zoomChart.setTicksCount(Axis.X, this._mobileMedia.matches ? 6 : 8);
-
-		this._zoomChart.setViewsOptions({
-			line: {
-				thickness: this._mobileMedia.matches ? 2 : 3
-			}
-		});
-
-		this._overviewChart.setViewsOptions({
-			line: {
-				thickness: this._mobileMedia.matches ? 1 : 2
-			}
-		});
 	}
 
 	/**
@@ -471,11 +447,6 @@ export default class Pane {
 	_listenEvents() {
 		window.addEventListener('resize', this._resize.bind(this));
 		window.addEventListener('orientationchange', this._resize.bind(this));
-
-		this._mobileMedia.addListener(() => {
-			this._adjustForMobile();
-			this._zoom();
-		});
 
 		this._zoombar.setRangeChangeListener(this._zoom.bind(this));
 	}
