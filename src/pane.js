@@ -529,13 +529,13 @@ export default class Pane {
 		this._overviewChart.draw();
 
 		this._cursor.resize();
+		this._zoombar.resize();
 
 		const range = this._zoomChart.getRange();
 		const startPixels = this._overviewChart.getPixelsByX(range.start);
 		const endPixels = this._overviewChart.getPixelsByX(range.end);
 
-		this._zoombar.resize();
-		this._zoombar.setRange(startPixels, endPixels);
+		this._zoombar.setRange(startPixels || 0, endPixels || 0);
 	}
 
 	/**

@@ -112,9 +112,9 @@ export default class Zoombar {
 	 * @param {number} end
 	 */
 	setRange(start, end) {
-		this._renderLeftOverlaySize(start - this._leftGripSize);
-		this._renderRightOverlaySize(this._containerSize - end - this._rightGripSize);
-		this._renderPanSize(end - start);
+		this._renderLeftOverlaySize(max(start - this._leftGripSize, 0));
+		this._renderRightOverlaySize(max(this._containerSize - end - this._rightGripSize, 0));
+		this._renderPanSize(max(end - start, 0));
 	}
 
 	/**
