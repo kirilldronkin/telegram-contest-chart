@@ -81,14 +81,14 @@ export default class Line {
 	}
 
 	/**
-	 * @return {Timing}
+	 * @override
 	 */
 	getFadeInTransitionTiming() {
 		return Timing.EASE_OUT;
 	}
 
 	/**
-	 * @return {Timing}
+	 * @override
 	 */
 	getFadeOutTransitionTiming() {
 		return Timing.EASE_IN;

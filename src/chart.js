@@ -214,7 +214,8 @@ export let Options;
  */
 const defaultViewsOptions = {
 	line: undefined,
-	bar: undefined
+	bar: undefined,
+	area: undefined
 };
 
 /**

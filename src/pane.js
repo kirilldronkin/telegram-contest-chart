@@ -230,10 +230,10 @@ export default class Pane {
 		parent.appendChild(this._container);
 
 		this._graphs.forEach((graph, index) => {
-			const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
+			const viewIndex = this._layoutType === LayoutType.LINE_DOUBLE ? index % 2 : 0;
 
-			this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
-			this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index : 0);
+			this._zoomChart.addGraph(graph, index, viewIndex);
+			this._overviewChart.addGraph(graph, index, viewIndex);
 		});
 
 		this._cursor.observe(this._zoomChart);
@@ -312,13 +312,12 @@ export default class Pane {
 	 * @private
 	 */
 	_toggleGraphs({show = [], hide = []} = {}) {
-		const isLineDoubleLayout = this._layoutType === LayoutType.LINE_DOUBLE;
-
 		show.forEach((graph) => {
 			const index = this._graphs.indexOf(graph);
+			const viewIndex = this._layoutType === LayoutType.LINE_DOUBLE ? index % 2 : 0;
 
-			this._zoomChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
-			this._overviewChart.addGraph(graph, index, isLineDoubleLayout ? index % 2 : 0);
+			this._zoomChart.addGraph(graph, index, viewIndex);
+			this._overviewChart.addGraph(graph, index, viewIndex);
 		});
 
 		hide.forEach((graph) => {
