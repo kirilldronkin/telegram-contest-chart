@@ -5,7 +5,12 @@ The goal was to develop a software for showing simple charts based on the provid
 
 See the [demo](http://dronkin.ru/telegram-contest-chart/).
 
-![alt text](preview.png)
+<p>
+	<img src="preview/1.png" width="49%" />
+	<img src="preview/2.png" width="49%" />
+	<img src="preview/3.png" width="49%" />
+	<img src="preview/4.png" width="49%" />
+</p>
 
 ## Results
 
