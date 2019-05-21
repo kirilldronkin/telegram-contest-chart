@@ -14,8 +14,8 @@ See the [demo](http://dronkin.ru/telegram-contest-chart/).
 
 ## Results
 
-* Stage 1 (March 10 - 24) - no prizes
-* Stage 2 (April 7 - 15) - [4th place](https://contest.dev/chart-js/entry250)
+* Stage 1 (March 10 - 24) - no prizes;
+* Stage 2 (April 7 - 15) - [4th place](https://contest.dev/chart-js/entry250);
 
 ## About
 
