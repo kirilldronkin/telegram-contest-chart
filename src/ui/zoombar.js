@@ -202,8 +202,10 @@ export default class Zoombar {
 	 */
 	_onLeftGripDragged(positionDiff) {
 		const newPanSize = max(this._panSize - positionDiff, 0);
-		if (newPanSize >= 0) {
-			this._renderLeftOverlaySize(this._leftOverlaySize - (newPanSize - this._panSize));
+		const newLeftOverlaySize = this._leftOverlaySize - (newPanSize - this._panSize);
+
+		if (newPanSize >= 0 && newLeftOverlaySize >= 0) {
+			this._renderLeftOverlaySize(newLeftOverlaySize);
 			this._renderPanSize(newPanSize);
 
 			this._rangeChangeListener();
@@ -216,8 +218,10 @@ export default class Zoombar {
 	 */
 	_onRightGripDragged(positionDiff) {
 		const newPanSize = max(this._panSize + positionDiff, 0);
-		if (newPanSize >= 0) {
-			this._renderRightOverlaySize(this._rightOverlaySize - (newPanSize - this._panSize));
+		const newRightOverlaySize = this._rightOverlaySize - (newPanSize - this._panSize);
+
+		if (newPanSize >= 0 && newRightOverlaySize >= 0) {
+			this._renderRightOverlaySize(newRightOverlaySize);
 			this._renderPanSize(newPanSize);
 
 			this._rangeChangeListener();
