@@ -51,14 +51,14 @@ export default class Bar {
 	}
 
 	/**
-	 * @return {Timing}
+	 * @override
 	 */
 	getFadeInTransitionTiming() {
 		return Timing.LINEAR;
 	}
 
 	/**
-	 * @return {Timing}
+	 * @override
 	 */
 	getFadeOutTransitionTiming() {
 		return Timing.LINEAR;

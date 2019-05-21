@@ -42,14 +42,14 @@ export default class Transition {
 	 * }} opt
 	 */
 	constructor({
-    intervals,
-    duration,
-    timing,
-    onStart = noop,
-    onProgress = noop,
-    onComplete = noop,
-    onUpdate = noop,
-    onCancel = noop
+		intervals,
+		duration,
+		timing,
+		onStart = noop,
+		onProgress = noop,
+		onComplete = noop,
+		onUpdate = noop,
+		onCancel = noop
 	}) {
 		/**
 		 * @type {Array<Interval>}

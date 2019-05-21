@@ -22,7 +22,7 @@ import {
 	hexToRGB
 } from './utils.js';
 
-const {min, max,} = Math;
+const {min, max, floor} = Math;
 
 /**
  * @const {number}
@@ -214,7 +214,8 @@ export let Options;
  */
 const defaultViewsOptions = {
 	line: undefined,
-	bar: undefined
+	bar: undefined,
+	area: undefined
 };
 
 /**
@@ -937,7 +938,7 @@ export default class Chart {
 			1
 		);
 
-		const ratio = devicePixelRatio / backingStoreRatio;
+		const ratio = floor(devicePixelRatio / backingStoreRatio) || 1;
 
 		if (devicePixelRatio !== backingStoreRatio) {
 			this._canvas.width = width * ratio;

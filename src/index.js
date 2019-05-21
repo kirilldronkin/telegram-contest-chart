@@ -48,7 +48,7 @@ window.addEventListener('load', onLoad);
 /**
  * @return {Promise<Object>}
  */
-async function loadDatasets() {
+function loadDatasets() {
 	return Promise.all(
 		['1', '2', '3', '4', '5'].map((sample) =>
 			fetch(`data/${sample}/overview.json`).then((response) => response.json())
@@ -67,7 +67,8 @@ async function onLoad() {
 			new Graph(
 				dataset['names'][name],
 				dataset['colors'][name],
-				values.map((value, index) => new Point(xs[index], value)))
+				values.map((value, index) => new Point(xs[index], value))
+			)
 		);
 
 		let /** @type {string} */ title;

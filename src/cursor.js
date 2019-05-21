@@ -18,12 +18,12 @@ import {
 /**
  * @const {number}
  */
-const LABEL_MARGIN = 10;
+const TOOLBAR_MARGIN = 10;
 
 /**
  * @const {number}
  */
-const LABEL_FILL_BACKPRESSURE_TIME = 100;
+const TOOLBAR_FILL_BACKPRESSURE_TIME = 100;
 
 /**
  * @typedef {Array<{
@@ -99,13 +99,13 @@ export default class Cursor {
 		 * @type {function(number, ToolbarEntries)}
 		 * @private
 		 */
-		this._fillToolbarThrottled = throttle(this._fillToolbar.bind(this), LABEL_FILL_BACKPRESSURE_TIME);
+		this._fillToolbarThrottled = throttle(this._fillToolbar.bind(this), TOOLBAR_FILL_BACKPRESSURE_TIME);
 
 		/**
 		 * @type {function(number, ToolbarEntries)}
 		 * @private
 		 */
-		this._fillToolbarDebounced = debounce(this._fillToolbar.bind(this), LABEL_FILL_BACKPRESSURE_TIME);
+		this._fillToolbarDebounced = debounce(this._fillToolbar.bind(this), TOOLBAR_FILL_BACKPRESSURE_TIME);
 
 		/**
 		 * @type {function()}
@@ -196,7 +196,7 @@ export default class Cursor {
 		const toolbarWidth = this._toolbarContainer.offsetWidth;
 		const toolbarHeight = this._toolbarContainer.offsetHeight;
 
-		const adjustedLeftOffset = clamp(leftOffset - (toolbarWidth + LABEL_MARGIN), 0, this._canvasWidth);
+		const adjustedLeftOffset = clamp(leftOffset - (toolbarWidth + TOOLBAR_MARGIN), 0, this._canvasWidth);
 		const adjustedTopOffset = clamp(topOffset - toolbarHeight, 0, this._canvasHeight - toolbarHeight);
 
 		this._toolbarContainer.style.transform = `translate(${adjustedLeftOffset}px, ${adjustedTopOffset}px)`;
@@ -242,7 +242,6 @@ export default class Cursor {
 			if (viewType === ViewType.BAR && graphsWithPoint.length > 1) {
 				columns.push({
 					name: 'All',
-					color: '#fff',
 					value: ySum
 				});
 			}
@@ -329,7 +328,7 @@ export default class Cursor {
 
 			const isRulerNeeded = viewType === ViewType.LINE || viewType === ViewType.AREA;
 			if (isRulerNeeded) {
-				graphsWithHighlightedPoint.forEach(({graph, point}) => {
+				graphsWithHighlightedPoint.forEach(({point}) => {
 					if (!rulerXs.includes(point.x)) {
 						rulerXs.push(point.x);
 					}
