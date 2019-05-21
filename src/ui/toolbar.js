@@ -38,8 +38,8 @@ export default class Toolbar {
 	/**
 	 * @param {Array<{
 	 *   name: string,
-	 *   color: string,
 	 *   value: number,
+	 *   color: (string|undefined),
 	 *   percentage: (number|undefined)
 	 * }>} columns
 	 */
@@ -58,8 +58,11 @@ export default class Toolbar {
 			);
 
 			const valueElement = createDivElement('toolbar__cell', formatNumber(round(value)));
-			valueElement.style.color = color;
 			valueColumn.appendChild(valueElement);
+
+			if (typeof color !== 'undefined') {
+				valueElement.style.color = color;
+			}
 
 			if (typeof percentage !== 'undefined') {
 				percentageColumn.appendChild(

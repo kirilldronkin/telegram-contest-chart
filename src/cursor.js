@@ -242,7 +242,6 @@ export default class Cursor {
 			if (viewType === ViewType.BAR && graphsWithPoint.length > 1) {
 				columns.push({
 					name: 'All',
-					color: '#fff',
 					value: ySum
 				});
 			}
