@@ -3,7 +3,7 @@
 The application was made for the 2019 March - April Coding Competition by [Telegram](https://telegram.org/).
 The goal was to develop a software for showing simple charts based on the provided input.
 
-See the [demo](http://dronkin.ru/telegram-contest-chart/).
+See the [demo](https://kirilldronkin.github.io/telegram-contest-chart/).
 
 <p>
 	<img src="preview/1.png" width="49%" />
